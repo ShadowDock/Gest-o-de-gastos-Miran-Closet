@@ -215,6 +215,24 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 ::-webkit-scrollbar-thumb{background:rgba(212,96,127,.3);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(212,96,127,.5)}
 
+/* ===== LOGIN ===== */
+.login-ov{position:fixed;inset:0;background:linear-gradient(145deg,#fdf5f7 0%,#fde3ec 100%);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-ov.hidden{display:none}
+.login-box{background:#fff;border:1px solid rgba(212,96,127,.15);border-radius:22px;padding:42px 38px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(212,96,127,.14),0 4px 16px rgba(0,0,0,.06);animation:fadeUp .3s ease}
+.lg-logo{text-align:center;margin-bottom:34px}
+.lg-ic{width:64px;height:64px;background:linear-gradient(135deg,#e8859f,#b03060);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;box-shadow:0 8px 24px rgba(212,96,127,.35)}
+.lg-name{font-family:var(--font-d);font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.lg-sub{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-top:5px}
+.lg-err{background:var(--danger-d);border:1px solid rgba(201,78,109,.25);color:var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:18px;display:none;align-items:center;gap:7px}
+.lg-err.show{display:flex}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:40px}
+.pw-tog{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:2px;line-height:1;transition:color .15s}
+.pw-tog:hover{color:var(--primary)}
+.lg-divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--muted);font-size:11px}
+.lg-divider::before,.lg-divider::after{content:'';flex:1;height:1px;background:var(--border-s)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.shake{animation:shake .35s ease}
 /* ===== ACCOUNT OVERLAY ===== */
 .conta-overlay{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 .conta-overlay.hidden{display:none}
@@ -510,6 +528,7 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-p" onclick="mostrarOverlayConta()">👥 Gerenciar Contas</button>
         <button class="btn btn-g" onclick="logout()">↩️ Trocar Conta</button>
+        <button class="btn btn-d" onclick="logoutTotal()">🔒 Sair do Sistema</button>
       </div>
     </div>
     <div class="fc" style="margin-bottom:18px">
@@ -545,6 +564,38 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       <button class="btn btn-g" onclick="fecharMo()">Cancelar</button>
       <button class="btn" id="mo-btn" onclick="confirmarMo()">Confirmar</button>
     </div>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-ov" class="login-ov hidden">
+  <div class="login-box" id="login-box">
+    <div class="lg-logo">
+      <div class="lg-ic">👗</div>
+      <div class="lg-name">MiranCloset</div>
+      <div class="lg-sub">Sistema de Gestão</div>
+    </div>
+    <div class="lg-err" id="lg-err">❌ Usuário ou senha incorretos.</div>
+    <div class="fgrp" style="margin-bottom:14px">
+      <label>Usuário</label>
+      <input type="text" id="l-user" placeholder="Nome de usuário" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('l-pass').focus()">
+    </div>
+    <div class="fgrp" style="margin-bottom:22px">
+      <label>Senha</label>
+      <div class="pw-wrap">
+        <input type="password" id="l-pass" placeholder="••••••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')fazerLogin()">
+        <button class="pw-tog" type="button" onclick="toggleSenha(this)" title="Mostrar senha">👁️</button>
+      </div>
+    </div>
+    <button class="btn btn-p" onclick="fazerLogin()" style="width:100%;padding:12px 18px;font-size:14px">
+      Entrar →
+    </button>
+    <div class="lg-divider">acesso restrito</div>
+    <p style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6">
+      Apenas usuários autorizados.<br>Entre em contato com a administradora.
+    </p>
   </div>
 </div>
 
@@ -584,6 +635,67 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 /* ============================================================
    ACCOUNT SYSTEM
    ============================================================ */
+/* ============================================================
+   AUTH SYSTEM
+   ============================================================ */
+const _AU = 'Amanda Miran';
+const _AP = ['a','M','#','9','k','X','v','@','L','p','3','$','q','N','7','!'].join('');
+let _AH = null;
+
+async function initAuthHash() {
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(_AP));
+    _AH = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch { _AH = null; }
+}
+
+function toggleSenha(btn) {
+  const inp = document.getElementById('l-pass');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+async function fazerLogin() {
+  const u = document.getElementById('l-user').value.trim();
+  const p = document.getElementById('l-pass').value;
+  if (!u || !p) return;
+  if (!_AH) await initAuthHash();
+
+  let ok = false;
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(p));
+    const h = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    ok = (u === _AU && h === _AH);
+  } catch { ok = (u === _AU && p === _AP); }
+
+  if (ok) {
+    localStorage.setItem('miran_auth','1');
+    document.getElementById('login-ov').classList.add('hidden');
+    document.getElementById('lg-err').classList.remove('show');
+    const id = getIdAtivo();
+    if (id && getContas().find(c=>c.id===id)) { atualizarSbConta(); renderDash(); }
+    else mostrarOverlayConta();
+  } else {
+    const err = document.getElementById('lg-err');
+    const box = document.getElementById('login-box');
+    err.classList.add('show');
+    box.classList.add('shake');
+    setTimeout(()=>box.classList.remove('shake'), 400);
+    document.getElementById('l-pass').value = '';
+    document.getElementById('l-pass').focus();
+  }
+}
+
+function logoutTotal() {
+  localStorage.removeItem('miran_auth');
+  localStorage.removeItem(ATIVA_KEY);
+  document.getElementById('conta-overlay').classList.add('hidden');
+  document.getElementById('login-ov').classList.remove('hidden');
+  document.getElementById('l-user').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('lg-err').classList.remove('show');
+}
+
 const CONTAS_KEY = 'loja_contas';
 const ATIVA_KEY  = 'loja_conta_ativa';
 const AV_CORES   = ['#d4607f','#c9a0b4','#b07eb8','#e8859f','#9b6ea0','#d49bc8','#c87090','#a06080'];
@@ -1311,7 +1423,7 @@ function renderConfig() {
 /* ============================================================
    INIT
    ============================================================ */
-window.addEventListener('load', ()=>{
+window.addEventListener('load', async ()=>{
   document.getElementById('v-data').value=hoje();
   document.getElementById('g-data').value=hoje();
   const n=new Date();
@@ -1319,14 +1431,17 @@ window.addEventListener('load', ()=>{
   document.getElementById('r-ini').value=pd;
   document.getElementById('r-fim').value=hoje();
 
+  await initAuthHash();
+
+  if (!localStorage.getItem('miran_auth')) {
+    document.getElementById('login-ov').classList.remove('hidden');
+    return;
+  }
+
   const id = getIdAtivo();
   const contaValida = id && getContas().find(c=>c.id===id);
-  if (!contaValida) {
-    mostrarOverlayConta();
-  } else {
-    atualizarSbConta();
-    renderDash();
-  }
+  if (!contaValida) mostrarOverlayConta();
+  else { atualizarSbConta(); renderDash(); }
 });
 </script>
 </body>
