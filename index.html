@@ -194,6 +194,29 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .total-box{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .total-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .total-val{font-size:23px;font-weight:800;color:var(--primary-b);letter-spacing:-.5px}
+/* tam adder (product form) */
+.tam-adder-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
+.tam-adder-row .fgrp{margin:0}
+.tam-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.tam-chip{display:inline-flex;align-items:center;gap:5px;background:var(--primary-dim);border:1px solid rgba(212,96,127,.3);border-radius:6px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--primary)}
+.tam-chip .tc-rem{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;line-height:1;padding:0;margin-left:2px}
+.tam-chip .tc-rem:hover{opacity:.7}
+.tam-empty{font-size:12px;color:var(--muted);font-style:italic}
+/* cart */
+.cart-section{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.cart-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
+.cart-add-row{display:grid;grid-template-columns:1fr 80px 100px auto;gap:8px;align-items:flex-end}
+.cart-add-row .fgrp{margin:0}
+.cart-add-btn{padding:8px 14px;white-space:nowrap}
+.cart-table-wrap{margin-top:10px}
+.cart-empty{text-align:center;padding:16px;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:8px}
+.cart-table{width:100%;border-collapse:collapse;font-size:13px}
+.cart-table th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--border)}
+.cart-table td{padding:7px 8px;border-bottom:1px solid var(--border-s);vertical-align:middle}
+.cart-table tr:last-child td{border-bottom:none}
+.cart-table .ct-rem{color:var(--danger);cursor:pointer;background:none;border:none;font-size:16px;line-height:1;padding:2px 5px;border-radius:5px;transition:background .15s}
+.cart-table .ct-rem:hover{background:var(--danger-d)}
+.parcelas-row{display:none}
 .prog-bar{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden;margin-top:5px}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-b));border-radius:3px;transition:width .5s ease}
 .rank-item{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--surface-2);border-radius:8px;margin-bottom:7px;border:1px solid var(--border-s);transition:border-color .15s}
@@ -378,16 +401,24 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
           </select>
         </div>
         <div class="fgrp"><label>Cor</label><input type="text" id="p-cor" placeholder="Ex: Preto"></div>
-        <div class="fgrp"><label>Tamanho</label>
-          <select id="p-tam">
-            <option value="">Selecionar...</option>
-            <option>PP</option><option>P</option><option>M</option>
-            <option>G</option><option>GG</option><option>XGG</option><option>Único</option>
-          </select>
-        </div>
-        <div class="fgrp"><label>Quantidade</label><input type="number" id="p-qtd" min="0" placeholder="0"></div>
         <div class="fgrp"><label>Custo (R$)</label><input type="number" id="p-custo" min="0" step="0.01" placeholder="0,00"></div>
         <div class="fgrp"><label>Preço de Venda (R$)</label><input type="number" id="p-preco" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgrp s2"><label>Tamanhos &amp; Quantidades</label>
+          <div class="tam-adder-row">
+            <div class="fgrp" style="flex:1">
+              <select id="p-tam-sel">
+                <option value="">Tamanho...</option>
+                <option>PP</option><option>P</option><option>M</option>
+                <option>G</option><option>GG</option><option>XGG</option><option>Único</option>
+              </select>
+            </div>
+            <div class="fgrp" style="width:90px">
+              <input type="number" id="p-tam-qtd" min="1" value="1" placeholder="Qtd">
+            </div>
+            <button class="btn btn-g btn-sm" onclick="adicionarTam()" style="white-space:nowrap">➕ Adicionar</button>
+          </div>
+          <div id="tam-lista"><span class="tam-empty">Nenhum tamanho adicionado</span></div>
+        </div>
       </div>
       <div class="fa">
         <button class="btn btn-p" onclick="salvarProd()">💾 Salvar Produto</button>
@@ -409,35 +440,79 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
   <!-- NOVA VENDA -->
   <section class="section" id="sec-venda">
     <div class="pg-header">
-      <div><div class="pg-title">Nova Venda</div><div class="pg-sub">Registre uma venda</div></div>
+      <div><div class="pg-title">Nova Venda</div><div class="pg-sub">Registre uma venda com um ou mais produtos</div></div>
     </div>
     <div class="fc">
-      <div class="fc-title"><span>📝</span> Dados da Venda</div>
+      <div class="fc-title"><span>🛒</span> Adicionar Produtos ao Carrinho</div>
       <div id="venda-alert"></div>
+
+      <!-- produto adder -->
+      <div class="cart-section">
+        <div class="cart-section-title">Selecione o produto</div>
+        <div class="cart-add-row" style="grid-template-columns:1fr 120px 80px 110px auto">
+          <div class="fgrp">
+            <label>Produto</label>
+            <select id="v-prod" onchange="aoSelecionarProd()"><option value="">Selecionar produto...</option></select>
+          </div>
+          <div class="fgrp">
+            <label>Tamanho</label>
+            <select id="v-tam" onchange="atualizarEstInfo()"><option value="">—</option></select>
+          </div>
+          <div class="fgrp">
+            <label>Qtd</label>
+            <input type="number" id="v-qtd" min="1" value="1" oninput="atualizarEstInfo()">
+          </div>
+          <div class="fgrp">
+            <label>Valor Unit. (R$)</label>
+            <input type="number" id="v-val" min="0" step="0.01" placeholder="0,00">
+          </div>
+          <button class="btn btn-p cart-add-btn" onclick="adicionarCarrinho()">➕ Adicionar</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px" id="v-est-info"></div>
+      </div>
+
+      <!-- cart table -->
+      <div class="cart-table-wrap">
+        <div id="cart-body">
+          <div class="cart-empty">🛒 Carrinho vazio — adicione produtos acima</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- sale details -->
+      <div class="fc-title"><span>📝</span> Dados da Venda</div>
       <div class="fg fg4">
         <div class="fgrp s2"><label>Nome do Cliente</label><input type="text" id="v-cli" placeholder="Nome do cliente (opcional)"></div>
-        <div class="fgrp s2"><label>Produto</label>
-          <select id="v-prod" onchange="aoSelecionarProd()"><option value="">Selecionar produto...</option></select>
-        </div>
-        <div class="fgrp"><label>Tamanho</label><input type="text" id="v-tam" placeholder="—"></div>
-        <div class="fgrp"><label>Cor</label><input type="text" id="v-cor" placeholder="—"></div>
-        <div class="fgrp"><label>Quantidade</label><input type="number" id="v-qtd" min="1" value="1" oninput="calcTotal()"></div>
-        <div class="fgrp"><label>Valor Unitário (R$)</label><input type="number" id="v-val" min="0" step="0.01" placeholder="0,00" oninput="calcTotal()"></div>
         <div class="fgrp"><label>Forma de Pagamento</label>
-          <select id="v-pag">
+          <select id="v-pag" onchange="aoMudarPagamento()">
             <option value="">Selecionar...</option>
             <option>Dinheiro</option><option>PIX</option>
             <option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Fiado</option>
           </select>
         </div>
+        <div class="fgrp parcelas-row" id="v-parcelas-wrap">
+          <label>Nº de Parcelas</label>
+          <select id="v-parcelas">
+            <option value="1">1× (à vista)</option>
+            <option value="2">2×</option><option value="3">3×</option>
+            <option value="4">4×</option><option value="5">5×</option>
+            <option value="6">6×</option><option value="7">7×</option>
+            <option value="8">8×</option><option value="9">9×</option>
+            <option value="10">10×</option><option value="11">11×</option>
+            <option value="12">12×</option><option value="18">18×</option>
+            <option value="24">24×</option>
+          </select>
+        </div>
         <div class="fgrp"><label>Data da Venda</label><input type="date" id="v-data"></div>
         <div class="fgrp sf"><label>Observação</label><textarea id="v-obs" placeholder="Observações opcionais..."></textarea></div>
       </div>
+
       <div class="divider"></div>
       <div class="total-box">
         <div>
           <div class="total-lbl">Total da Venda</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="v-est-info"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="v-total-sub"></div>
         </div>
         <div class="total-val" id="v-total">R$ 0,00</div>
       </div>
@@ -927,21 +1002,21 @@ function renderDash() {
     n.toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
   const va = d.vendas.filter(v=>!v.cancelada);
-  const totVend = va.reduce((s,v)=>s+v.val*v.qtd,0);
-  const totCusto = va.reduce((s,v)=>{
-    const p=d.produtos.find(p=>p.id===v.prodId);
-    return s+(p?p.custo:0)*v.qtd;
-  },0);
+  // Valor total face de todas as vendas (o que foi vendido)
+  const totVend = va.reduce((s,v)=>s+vTotal(v),0);
+  const totCusto = va.reduce((s,v)=>s+vCusto(v,d.produtos),0);
   const totGastos = d.gastos.reduce((s,g)=>s+g.val,0);
-  const totInv = d.produtos.reduce((s,p)=>s+p.custo*p.qtd,0);
+  const totInv = d.produtos.reduce((s,p)=>s+p.custo*prodQtdTotal(p),0);
   const lucro = totVend - totCusto;
   const margem = totVend>0 ? (lucro/totVend*100) : 0;
 
+  // "Recebido este mês" = parcelas que vencem no mês atual (de QUALQUER venda)
+  let totMes = 0;
+  va.forEach(v=>gerarParcelas(v,null).forEach(p=>{ if(p.mes===mes) totMes+=p.val; }));
   const vMes = va.filter(v=>v.data&&v.data.startsWith(mes));
-  const totMes = vMes.reduce((s,v)=>s+v.val*v.qtd,0);
   const gMes = d.gastos.filter(g=>g.data&&g.data.startsWith(mes));
   const totGMes = gMes.reduce((s,g)=>s+g.val,0);
-  const totPecas = d.produtos.reduce((s,p)=>s+p.qtd,0);
+  const totPecas = d.produtos.reduce((s,p)=>s+prodQtdTotal(p),0);
 
   document.getElementById('dash-fin').innerHTML = `
     <div class="metric"><span class="m-icon">💼</span><div class="m-lbl">Investido em Estoque</div><div class="m-val v">${brl(totInv)}</div><div class="m-sub">${d.produtos.length} produto(s) · ${totPecas} peça(s)</div></div>
@@ -952,9 +1027,9 @@ function renderDash() {
 
   document.getElementById('dash-kpi').innerHTML = `
     <div class="metric"><span class="m-icon">👕</span><div class="m-lbl">Peças em Estoque</div><div class="m-val">${totPecas}</div><div class="m-sub">${d.produtos.length} produtos</div></div>
-    <div class="metric"><span class="m-icon">🛍️</span><div class="m-lbl">Vendas do Mês</div><div class="m-val g">${brl(totMes)}</div><div class="m-sub">${vMes.length} transação(ões)</div></div>
+    <div class="metric"><span class="m-icon">🛍️</span><div class="m-lbl">Recebido este Mês</div><div class="m-val g">${brl(totMes)}</div><div class="m-sub">${vMes.length} venda(s) feita(s) no mês</div></div>
     <div class="metric"><span class="m-icon">💰</span><div class="m-lbl">Gastos do Mês</div><div class="m-val r">${brl(totGMes)}</div><div class="m-sub">${gMes.length} lançamento(s)</div></div>
-    <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">Saldo do Mês</div><div class="m-val ${totMes-totGMes>=0?'g':'r'}">${brl(totMes-totGMes)}</div><div class="m-sub">Vendas − Gastos</div></div>
+    <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">Saldo do Mês</div><div class="m-val ${totMes-totGMes>=0?'g':'r'}">${brl(totMes-totGMes)}</div><div class="m-sub">Recebido − Gastos</div></div>
   `;
 
   renderGrafico(d);
@@ -969,7 +1044,7 @@ function renderDash() {
           <td class="t-s">${v.cli||'—'}</td>
           <td>${v.nomeProd} <span class="bdg bgr">${v.tam||''}</span></td>
           <td>${bdgPag(v.pag)}</td>
-          <td class="t-g">${brl(v.val*v.qtd)}</td>
+          <td class="t-g">${brl(vTotal(v))}</td>
         </tr>`).join('')}
       </tbody></table>`;
 }
@@ -979,7 +1054,7 @@ function renderGrafico(d) {
   const va = d.vendas.filter(v=>!v.cancelada);
   const tots = {};
   meses.forEach(m=>tots[m]=0);
-  va.forEach(v=>{ const mk=v.data?v.data.slice(0,7):''; if(tots[mk]!==undefined) tots[mk]+=v.val*v.qtd; });
+  va.forEach(v=>gerarParcelas(v,null).forEach(p=>{ if(tots[p.mes]!==undefined) tots[p.mes]+=p.val; }));
   const maxV = Math.max(...Object.values(tots),1);
 
   document.getElementById('bar-chart').innerHTML = meses.map(m=>{
@@ -996,38 +1071,78 @@ function renderGrafico(d) {
    ESTOQUE
    ============================================================ */
 let editPId = null;
+let tamLista = []; // [{tam,qtd}] used during product form editing
+
+// backward-compat helpers
+function prodTamanhos(p) {
+  if (p.tamanhos && p.tamanhos.length) return p.tamanhos;
+  if (p.tam) return [{tam:p.tam, qtd:p.qtd||0}];
+  return [];
+}
+function prodQtdTotal(p) {
+  return prodTamanhos(p).reduce((s,t)=>s+t.qtd,0);
+}
+
+function renderTamLista() {
+  const el=document.getElementById('tam-lista');
+  if (!tamLista.length) { el.innerHTML='<span class="tam-empty">Nenhum tamanho adicionado</span>'; return; }
+  el.innerHTML='<div class="tam-chips">'+tamLista.map((t,i)=>
+    `<span class="tam-chip">${t.tam} · ${t.qtd} un.<button class="tc-rem" onclick="removerTam(${i})">✕</button></span>`
+  ).join('')+'</div>';
+}
+
+function adicionarTam() {
+  const tam=document.getElementById('p-tam-sel').value;
+  const qtd=parseInt(document.getElementById('p-tam-qtd').value)||0;
+  if (!tam) { toast('Selecione um tamanho','error'); return; }
+  if (qtd<=0) { toast('Quantidade deve ser maior que zero','error'); return; }
+  const ex=tamLista.find(t=>t.tam===tam);
+  if (ex) { ex.qtd+=qtd; } else { tamLista.push({tam,qtd}); }
+  document.getElementById('p-tam-sel').value='';
+  document.getElementById('p-tam-qtd').value='1';
+  renderTamLista();
+}
+
+function removerTam(idx) {
+  tamLista.splice(idx,1);
+  renderTamLista();
+}
 
 function salvarProd() {
   const nome = document.getElementById('p-nome').value.trim();
   const cat  = document.getElementById('p-cat').value;
   const cor  = document.getElementById('p-cor').value.trim();
-  const tam  = document.getElementById('p-tam').value;
-  const qtd  = parseInt(document.getElementById('p-qtd').value);
   const custo= parseFloat(document.getElementById('p-custo').value);
   const preco= parseFloat(document.getElementById('p-preco').value);
 
-  if (!nome||!cat||!tam||isNaN(qtd)||qtd<0||isNaN(custo)||custo<0||isNaN(preco)||preco<0) {
+  if (!nome||!cat||isNaN(custo)||custo<0||isNaN(preco)||preco<0) {
     toast('Preencha todos os campos corretamente','error'); return;
+  }
+  if (!tamLista.length) {
+    toast('Adicione ao menos um tamanho com quantidade','error'); return;
   }
 
   const d = dados();
   if (editPId) {
     const i = d.produtos.findIndex(p=>p.id===editPId);
-    if (i!==-1) d.produtos[i] = {...d.produtos[i],nome,cat,cor,tam,qtd,custo,preco};
+    if (i!==-1) { d.produtos[i] = {id:editPId,nome,cat,cor,custo,preco,tamanhos:[...tamLista]}; }
     toast('Produto atualizado!'); editPId=null;
     document.getElementById('prod-form-ttl').innerHTML='<span>➕</span> Adicionar Produto';
     document.getElementById('btn-cancel-prod').style.display='none';
   } else {
-    d.produtos.push({id:uid(),nome,cat,cor,tam,qtd,custo,preco});
+    d.produtos.push({id:uid(),nome,cat,cor,custo,preco,tamanhos:[...tamLista]});
     toast('Produto adicionado!');
   }
   salvar(d); limparProd(); renderEstoque();
 }
 
 function limparProd() {
-  ['p-nome','p-cor','p-qtd','p-custo','p-preco'].forEach(id=>document.getElementById(id).value='');
+  ['p-nome','p-cor','p-custo','p-preco'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('p-cat').value='';
-  document.getElementById('p-tam').value='';
+  document.getElementById('p-tam-sel').value='';
+  document.getElementById('p-tam-qtd').value='1';
+  tamLista=[];
+  renderTamLista();
 }
 
 function cancelarProd() {
@@ -1043,10 +1158,10 @@ function editarProd(id) {
   document.getElementById('p-nome').value=p.nome;
   document.getElementById('p-cat').value=p.cat;
   document.getElementById('p-cor').value=p.cor||'';
-  document.getElementById('p-tam').value=p.tam;
-  document.getElementById('p-qtd').value=p.qtd;
   document.getElementById('p-custo').value=p.custo;
   document.getElementById('p-preco').value=p.preco;
+  tamLista=prodTamanhos(p).map(t=>({...t}));
+  renderTamLista();
   document.getElementById('prod-form-ttl').innerHTML='<span>✏️</span> Editar Produto';
   document.getElementById('btn-cancel-prod').style.display='inline-flex';
   document.getElementById('prod-form-card').scrollIntoView({behavior:'smooth'});
@@ -1073,17 +1188,18 @@ function renderEstoque() {
   }
 
   const mg=p=>p.preco>0?((p.preco-p.custo)/p.preco*100).toFixed(0)+'%':'—';
+  const tamBadges=p=>prodTamanhos(p).map(t=>`<span class="bdg ${t.qtd<=0?'br':t.qtd<=3?'by':'bgr'}" title="${t.qtd} un.">${t.tam}&nbsp;(${t.qtd})</span>`).join(' ');
 
   document.getElementById('est-table').innerHTML=`
     <table>
-      <thead><tr><th>Produto</th><th>Categoria</th><th>Cor</th><th>Tamanho</th><th>Qtd</th><th>Custo</th><th>Preço</th><th>Margem</th><th>Ações</th></tr></thead>
+      <thead><tr><th>Produto</th><th>Categoria</th><th>Cor</th><th>Tamanhos (qtd)</th><th>Total</th><th>Custo</th><th>Preço</th><th>Margem</th><th>Ações</th></tr></thead>
       <tbody>
         ${lista.map(p=>`<tr>
           <td class="t-s">${p.nome}</td>
           <td>${bdgCat(p.cat)}</td>
           <td class="t-m">${p.cor||'—'}</td>
-          <td><span class="bdg bgr">${p.tam}</span></td>
-          <td class="${p.qtd<=0?'t-r':p.qtd<=3?'t-y':'t-g'}">${p.qtd}</td>
+          <td style="white-space:normal">${tamBadges(p)}</td>
+          <td class="${prodQtdTotal(p)<=0?'t-r':prodQtdTotal(p)<=3?'t-y':'t-g'}">${prodQtdTotal(p)}</td>
           <td class="t-m">${brl(p.custo)}</td>
           <td class="t-s">${brl(p.preco)}</td>
           <td class="t-v">${mg(p)}</td>
@@ -1097,73 +1213,239 @@ function renderEstoque() {
 }
 
 /* ============================================================
-   NOVA VENDA
+   HELPERS DE VALOR (backward-compatible)
    ============================================================ */
+// Valor total da venda (soma de todos os itens)
+function vTotal(v) {
+  if (v.itens && v.itens.length) return v.itens.reduce((s,it)=>s+it.val*it.qtd,0);
+  return (v.val||0)*(v.qtd||1);
+}
+
+// Custo total da venda (requer array de produtos)
+function vCusto(v, prods) {
+  if (!prods) return 0;
+  if (v.itens&&v.itens.length) return v.itens.reduce((s,it)=>{ const p=prods.find(p=>p.id===it.prodId); return s+(p?p.custo:0)*it.qtd; },0);
+  const p=prods.find(p=>p.id===v.prodId); return (p?p.custo:0)*(v.qtd||1);
+}
+
+// Gera entradas de receita reconhecida por mês:
+// [{mes:'YYYY-MM', val:number, cst:number, pag:string}]
+// Para parcelamentos: 1 entrada por parcela, em meses consecutivos.
+// Para pagamentos à vista: 1 entrada no mês da venda.
+function gerarParcelas(v, prods) {
+  const tot = vTotal(v);
+  const cstTot = vCusto(v, prods);
+  const parc = parseInt(v.parcelas)||1;
+  if ((v.pag==='Fiado'||v.pag==='Cartão de Crédito') && parc>1 && v.data) {
+    const [yr,mo] = v.data.slice(0,7).split('-').map(Number);
+    return Array.from({length:parc}, (_,i)=>{
+      const tm=mo-1+i, y=yr+Math.floor(tm/12), m=tm%12+1;
+      return {mes:`${y}-${String(m).padStart(2,'0')}`, val:tot/parc, cst:cstTot/parc, pag:v.pag};
+    });
+  }
+  return [{mes:v.data?v.data.slice(0,7):'', val:tot, cst:cstTot, pag:v.pag}];
+}
+
+// Compat: valor reconhecido de uma venda (1ª parcela apenas — usado no hist)
+function vRecon(v) {
+  return gerarParcelas(v,null)[0]?.val || 0;
+}
+
+/* ============================================================
+   NOVA VENDA — CARRINHO
+   ============================================================ */
+let carrinho = []; // [{prodId,nome,tam,cor,qtd,val}]
+
 function initVenda() {
   const d=dados();
   document.getElementById('v-data').value=hoje();
   const sel=document.getElementById('v-prod');
-  const cur=sel.value;
   sel.innerHTML='<option value="">Selecionar produto...</option>';
-  d.produtos.filter(p=>p.qtd>0).forEach(p=>{
+  d.produtos.filter(p=>prodQtdTotal(p)>0).forEach(p=>{
     const o=document.createElement('option');
     o.value=p.id;
-    o.textContent=`${p.nome} — ${p.tam} — ${p.cor||'sem cor'} (${p.qtd} em estoque)`;
+    o.textContent=`${p.nome}${p.cor?' — '+p.cor:''} (${prodQtdTotal(p)} un.)`;
     sel.appendChild(o);
   });
-  if (cur) sel.value=cur;
-  calcTotal();
+  document.getElementById('v-tam').innerHTML='<option value="">—</option>';
+  renderCarrinho();
 }
 
 function aoSelecionarProd() {
   const d=dados(), id=document.getElementById('v-prod').value;
   const p=d.produtos.find(x=>x.id===id);
+  const tamSel=document.getElementById('v-tam');
+  tamSel.innerHTML='<option value="">Selecionar...</option>';
   if (p) {
-    document.getElementById('v-tam').value=p.tam;
-    document.getElementById('v-cor').value=p.cor||'';
     document.getElementById('v-val').value=p.preco;
-    document.getElementById('v-est-info').textContent=`${p.qtd} unidade(s) disponível(is) em estoque`;
-    calcTotal();
+    document.getElementById('v-qtd').value=1;
+    const tams=prodTamanhos(p).filter(t=>t.qtd>0);
+    tams.forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t.tam; o.textContent=`${t.tam} (${t.qtd} un.)`;
+      tamSel.appendChild(o);
+    });
+    if (tams.length===1) tamSel.value=tams[0].tam;
+    atualizarEstInfo();
   } else {
-    ['v-tam','v-cor','v-val'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('v-val').value='';
     document.getElementById('v-est-info').textContent='';
   }
 }
 
+function atualizarEstInfo() {
+  const d=dados(), id=document.getElementById('v-prod').value;
+  const tam=document.getElementById('v-tam').value;
+  const p=d.produtos.find(x=>x.id===id);
+  if (!p||!tam) { document.getElementById('v-est-info').textContent=''; return; }
+  const t=prodTamanhos(p).find(x=>x.tam===tam);
+  document.getElementById('v-est-info').textContent=t?`Estoque disponível: ${t.qtd} un.`:'';
+}
+
+function aoMudarPagamento() {
+  const pag=document.getElementById('v-pag').value;
+  const wrap=document.getElementById('v-parcelas-wrap');
+  if (pag==='Fiado'||pag==='Cartão de Crédito') {
+    wrap.style.display='flex';
+  } else {
+    wrap.style.display='none';
+    document.getElementById('v-parcelas').value='1';
+  }
+  calcTotal();
+}
+
+function adicionarCarrinho() {
+  const prodId=document.getElementById('v-prod').value;
+  const qtd=parseInt(document.getElementById('v-qtd').value)||0;
+  const tam=document.getElementById('v-tam').value;
+  const val=parseFloat(document.getElementById('v-val').value)||0;
+  const alEl=document.getElementById('venda-alert');
+  alEl.innerHTML='';
+  if (!prodId) { alEl.innerHTML='<div class="alert al-d">⚠️ Selecione um produto.</div>'; return; }
+  if (!tam) { alEl.innerHTML='<div class="alert al-d">⚠️ Selecione um tamanho.</div>'; return; }
+  if (qtd<=0) { alEl.innerHTML='<div class="alert al-d">⚠️ Quantidade deve ser maior que zero.</div>'; return; }
+  if (val<=0) { alEl.innerHTML='<div class="alert al-d">⚠️ Informe o valor unitário.</div>'; return; }
+
+  const d=dados();
+  const p=d.produtos.find(x=>x.id===prodId);
+  if (!p) return;
+  const tObj=prodTamanhos(p).find(x=>x.tam===tam);
+  const dispEst=tObj?tObj.qtd:0;
+
+  // check total requested qty for this product+tam already in cart
+  const jaNoCarrinho=carrinho.filter(c=>c.prodId===prodId&&c.tam===tam).reduce((s,c)=>s+c.qtd,0);
+  if (dispEst < jaNoCarrinho+qtd) {
+    alEl.innerHTML=`<div class="alert al-d">⚠️ Estoque insuficiente para ${tam}! Disponível: <strong>${dispEst}</strong>, já no carrinho: <strong>${jaNoCarrinho}</strong>.</div>`;
+    return;
+  }
+
+  carrinho.push({prodId,nome:p.nome,tam,cor:p.cor||'',qtd,val});
+  document.getElementById('v-prod').value='';
+  document.getElementById('v-tam').innerHTML='<option value="">—</option>';
+  document.getElementById('v-qtd').value='1';
+  document.getElementById('v-val').value='';
+  document.getElementById('v-est-info').textContent='';
+  renderCarrinho();
+}
+
+function removerCarrinho(idx) {
+  carrinho.splice(idx,1);
+  renderCarrinho();
+}
+
+function renderCarrinho() {
+  const el=document.getElementById('cart-body');
+  if (!carrinho.length) {
+    el.innerHTML='<div class="cart-empty">🛒 Carrinho vazio — adicione produtos acima</div>';
+    calcTotal(); return;
+  }
+  el.innerHTML=`<table class="cart-table">
+    <thead><tr><th>Produto</th><th>Tam.</th><th>Cor</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th><th></th></tr></thead>
+    <tbody>${carrinho.map((it,i)=>`<tr>
+      <td><strong>${it.nome}</strong></td>
+      <td><span class="bdg bgr">${it.tam||'—'}</span></td>
+      <td>${it.cor||'—'}</td>
+      <td>${it.qtd}</td>
+      <td class="t-m">${brl(it.val)}</td>
+      <td class="t-g">${brl(it.val*it.qtd)}</td>
+      <td><button class="ct-rem" onclick="removerCarrinho(${i})" title="Remover">✕</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+  calcTotal();
+}
+
 function calcTotal() {
-  const q=parseFloat(document.getElementById('v-qtd').value)||0;
-  const v=parseFloat(document.getElementById('v-val').value)||0;
-  document.getElementById('v-total').textContent=brl(q*v);
+  const tot=carrinho.reduce((s,it)=>s+it.val*it.qtd,0);
+  const parc=parseInt(document.getElementById('v-parcelas')?.value)||1;
+  const pag=document.getElementById('v-pag')?.value||'';
+  const usaParcelas=(pag==='Fiado'||pag==='Cartão de Crédito')&&parc>1;
+  document.getElementById('v-total').textContent=brl(tot);
+  const sub=document.getElementById('v-total-sub');
+  if (sub) sub.textContent=usaParcelas?`${parc}× de ${brl(tot/parc)} · reconhece ${brl(tot/parc)}/parcela`:``;
 }
 
 function registrarVenda() {
   const cli=document.getElementById('v-cli').value.trim();
-  const prodId=document.getElementById('v-prod').value;
-  const tam=document.getElementById('v-tam').value.trim();
-  const cor=document.getElementById('v-cor').value.trim();
-  const qtd=parseInt(document.getElementById('v-qtd').value);
-  const val=parseFloat(document.getElementById('v-val').value);
   const pag=document.getElementById('v-pag').value;
   const obs=document.getElementById('v-obs').value.trim();
   const data=document.getElementById('v-data').value;
+  const parcelas=parseInt(document.getElementById('v-parcelas').value)||1;
   const alEl=document.getElementById('venda-alert');
   alEl.innerHTML='';
 
-  if (!prodId||!qtd||qtd<=0||isNaN(val)||val<=0||!pag||!data) {
-    alEl.innerHTML='<div class="alert al-d">⚠️ Preencha: produto, quantidade, valor, pagamento e data.</div>';
-    return;
+  if (!carrinho.length) {
+    alEl.innerHTML='<div class="alert al-d">⚠️ Adicione ao menos um produto ao carrinho.</div>'; return;
+  }
+  if (!pag||!data) {
+    alEl.innerHTML='<div class="alert al-d">⚠️ Preencha: forma de pagamento e data.</div>'; return;
   }
 
   const d=dados();
-  const prod=d.produtos.find(p=>p.id===prodId);
-  if (!prod) { alEl.innerHTML='<div class="alert al-d">❌ Produto não encontrado.</div>'; return; }
-  if (prod.qtd<qtd) {
-    alEl.innerHTML=`<div class="alert al-d">⚠️ Estoque insuficiente! Disponível: <strong>${prod.qtd}</strong> unidade(s).</div>`;
-    return;
+  // verify stock for all items (per size)
+  for (const it of carrinho) {
+    const p=d.produtos.find(x=>x.id===it.prodId);
+    if (!p) { alEl.innerHTML=`<div class="alert al-d">❌ Produto "${it.nome}" não encontrado.</div>`; return; }
+    const tObj=prodTamanhos(p).find(x=>x.tam===it.tam);
+    const disp=tObj?tObj.qtd:0;
+    if (disp<it.qtd) {
+      alEl.innerHTML=`<div class="alert al-d">⚠️ Estoque insuficiente para "${it.nome}" (${it.tam})! Disponível: <strong>${disp}</strong>.</div>`; return;
+    }
   }
 
-  prod.qtd -= qtd;
-  d.vendas.push({id:uid(),cli:cli||'Não informado',prodId,nomeProd:prod.nome,tam:tam||prod.tam,cor:cor||prod.cor,qtd,val,pag,obs,data,cancelada:false});
+  // deduct stock per size
+  for (const it of carrinho) {
+    const p=d.produtos.find(x=>x.id===it.prodId);
+    const tams=prodTamanhos(p);
+    const tObj=tams.find(x=>x.tam===it.tam);
+    if (tObj) tObj.qtd-=it.qtd;
+    // keep tamanhos array up to date
+    if (p.tamanhos) p.tamanhos=tams;
+    else { p.qtd=tams[0]?.qtd||0; } // legacy
+  }
+
+  // build summary fields for backward-compat display (first item)
+  const primeiro=carrinho[0];
+  const nomeResumido=carrinho.length===1?primeiro.nome:`${primeiro.nome} +${carrinho.length-1}`;
+
+  d.vendas.push({
+    id:uid(),
+    cli:cli||'Não informado',
+    pag,
+    obs,
+    data,
+    cancelada:false,
+    parcelas:(pag==='Fiado'||pag==='Cartão de Crédito')?parcelas:1,
+    // multi-item
+    itens:carrinho.map(it=>({prodId:it.prodId,nomeProd:it.nome,tam:it.tam,cor:it.cor,qtd:it.qtd,val:it.val})),
+    // legacy compat fields (first item)
+    prodId:primeiro.prodId,
+    nomeProd:nomeResumido,
+    tam:primeiro.tam,
+    cor:primeiro.cor,
+    qtd:primeiro.qtd,
+    val:primeiro.val
+  });
+
   salvar(d);
   toast('🎉 Venda registrada com sucesso!');
   limparVenda(); initVenda();
@@ -1172,13 +1454,17 @@ function registrarVenda() {
 }
 
 function limparVenda() {
-  ['v-cli','v-tam','v-cor','v-val','v-obs'].forEach(id=>document.getElementById(id).value='');
+  carrinho=[];
+  ['v-cli','v-val','v-obs'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('v-prod').value='';
+  document.getElementById('v-tam').innerHTML='<option value="">—</option>';
   document.getElementById('v-qtd').value='1';
   document.getElementById('v-pag').value='';
+  document.getElementById('v-parcelas').value='1';
+  document.getElementById('v-parcelas-wrap').style.display='none';
   document.getElementById('v-data').value=hoje();
   document.getElementById('v-est-info').textContent='';
-  calcTotal();
+  renderCarrinho();
 }
 
 /* ============================================================
@@ -1241,12 +1527,30 @@ function limparFiltHist() {
 
 function cancelarVenda(id) {
   const d=dados(), v=d.vendas.find(x=>x.id===id);
-  abrirMo('↩️','Estornar Venda',`Cancelar venda de "${v?.nomeProd}" para ${v?.cli}? O produto será devolvido ao estoque.`,'Estornar','btn-w',()=>{
+  abrirMo('↩️','Estornar Venda',`Cancelar venda de "${v?.nomeProd}" para ${v?.cli}? Os produtos serão devolvidos ao estoque.`,'Estornar','btn-w',()=>{
     const dd=dados(), vv=dd.vendas.find(x=>x.id===id);
     if (vv&&!vv.cancelada) {
       vv.cancelada=true;
-      const p=dd.produtos.find(p=>p.id===vv.prodId);
-      if (p) p.qtd+=vv.qtd;
+      // multi-item (new format)
+      if (vv.itens&&vv.itens.length) {
+        vv.itens.forEach(it=>{
+          const p=dd.produtos.find(p=>p.id===it.prodId); if(!p) return;
+          const tams=prodTamanhos(p);
+          const tObj=tams.find(x=>x.tam===it.tam);
+          if (tObj) { tObj.qtd+=it.qtd; if(p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0; }
+          else if (p.tamanhos) p.tamanhos.push({tam:it.tam,qtd:it.qtd});
+          else p.qtd+=it.qtd;
+        });
+      } else {
+        // legacy single-product
+        const p=dd.produtos.find(p=>p.id===vv.prodId);
+        if(p) {
+          const tams=prodTamanhos(p);
+          const tObj=tams.find(x=>x.tam===vv.tam);
+          if(tObj) { tObj.qtd+=vv.qtd||1; if(p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0; }
+          else p.qtd+=(vv.qtd||1);
+        }
+      }
       salvar(dd); toast('Venda cancelada. Estoque restaurado.','warning'); renderHist();
     }
   });
@@ -1264,7 +1568,7 @@ function renderHist() {
   if (pag) lista=lista.filter(v=>v.pag===pag);
 
   const ativas=lista.filter(v=>!v.cancelada);
-  const totP=ativas.reduce((s,v)=>s+v.val*v.qtd,0);
+  const totP=ativas.reduce((s,v)=>s+vTotal(v),0);
 
   document.getElementById('hist-stats').innerHTML=`
     <div class="sp">📋 ${lista.length} venda(s)</div>
@@ -1273,17 +1577,32 @@ function renderHist() {
     <div class="sp">💵 ${brl(totP)}</div>
   `;
 
+  function histItens(v) {
+    if (v.itens&&v.itens.length) {
+      if (v.itens.length===1) return `${v.itens[0].nomeProd} <span class="bdg bgr">${v.itens[0].tam||'—'}</span>`;
+      return v.itens.map(it=>`${it.nomeProd} <span class="bdg bgr">${it.tam||'—'}</span> ×${it.qtd}`).join('<br>');
+    }
+    return `${v.nomeProd||'—'} <span class="bdg bgr">${v.tam||'—'}</span>`;
+  }
+  function histQtd(v) {
+    if (v.itens&&v.itens.length) return v.itens.reduce((s,it)=>s+it.qtd,0);
+    return v.qtd||1;
+  }
+  function histParc(v) {
+    const parc=parseInt(v.parcelas)||1;
+    if ((v.pag==='Fiado'||v.pag==='Cartão de Crédito')&&parc>1) return `<br><span style="font-size:11px;color:var(--muted)">${parc}× de ${brl(vTotal(v)/parc)}</span>`;
+    return '';
+  }
+
   document.getElementById('hist-table').innerHTML = !lista.length
     ? `<div class="es"><div class="es-ic">📋</div><div class="es-t">Nenhuma venda no período</div><div class="es-s">Ajuste os filtros ou registre uma venda</div></div>`
-    : `<table><thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th>Tam.</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
+    : `<table><thead><tr><th>Data</th><th>Cliente</th><th>Produto(s)</th><th>Qtd</th><th>Total</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
         <tbody>${lista.map(v=>`<tr style="${v.cancelada?'opacity:.45':''}">
           <td>${fdt(v.data)}</td>
           <td class="t-s">${v.cli}</td>
-          <td>${v.nomeProd}</td>
-          <td><span class="bdg bgr">${v.tam||'—'}</span></td>
-          <td>${v.qtd}</td>
-          <td class="t-m">${brl(v.val)}</td>
-          <td class="${v.cancelada?'t-m':'t-g'}">${brl(v.val*v.qtd)}</td>
+          <td>${histItens(v)}</td>
+          <td>${histQtd(v)}</td>
+          <td class="${v.cancelada?'t-m':'t-g'}">${brl(vTotal(v))}${histParc(v)}</td>
           <td>${bdgPag(v.pag)}</td>
           <td>${v.cancelada?'<span class="bdg br">Cancelada</span>':'<span class="bdg bg">Ativa</span>'}</td>
           <td>${!v.cancelada?`<button class="btn btn-w btn-sm" onclick="cancelarVenda('${v.id}')">↩️ Estornar</button>`:''}</td>
@@ -1297,29 +1616,52 @@ function renderRel() {
   const d=dados();
   const ini=document.getElementById('r-ini').value;
   const fim=document.getElementById('r-fim').value;
+  const mesIni=ini?ini.slice(0,7):null;
+  const mesFim=fim?fim.slice(0,7):null;
 
-  let vs=d.vendas.filter(v=>!v.cancelada);
-  if (ini) vs=vs.filter(v=>v.data>=ini);
-  if (fim) vs=vs.filter(v=>v.data<=fim);
+  const todas=d.vendas.filter(v=>!v.cancelada);
 
-  const rec=vs.reduce((s,v)=>s+v.val*v.qtd,0);
-  const cst=vs.reduce((s,v)=>{const p=d.produtos.find(p=>p.id===v.prodId);return s+(p?p.custo:0)*v.qtd;},0);
+  // Receita e custo: baseados em parcelas que vencem no período selecionado
+  // (inclui parcelas de vendas feitas em meses anteriores)
+  let rec=0, cst=0;
+  const porPag={};
+  const vendasNoPeriodo=new Set();
+
+  todas.forEach(v=>{
+    gerarParcelas(v, d.produtos).forEach(p=>{
+      if (mesIni&&p.mes<mesIni) return;
+      if (mesFim&&p.mes>mesFim) return;
+      rec+=p.val; cst+=p.cst;
+      porPag[p.pag]=(porPag[p.pag]||0)+p.val;
+      vendasNoPeriodo.add(v.id);
+    });
+  });
+
   const lucro=rec-cst;
   const margem=rec>0?(lucro/rec*100):0;
 
-  const porPag={};
-  vs.forEach(v=>{ porPag[v.pag]=(porPag[v.pag]||0)+v.val*v.qtd; });
-
+  // Produtos mais vendidos: baseado na DATA DA VENDA (quando o produto saiu)
+  let vsData=todas;
+  if (ini) vsData=vsData.filter(v=>v.data>=ini);
+  if (fim) vsData=vsData.filter(v=>v.data<=fim);
   const porProd={};
-  vs.forEach(v=>{ if(!porProd[v.nomeProd]) porProd[v.nomeProd]={qtd:0,tot:0}; porProd[v.nomeProd].qtd+=v.qtd; porProd[v.nomeProd].tot+=v.val*v.qtd; });
+  vsData.forEach(v=>{
+    if (v.itens&&v.itens.length) {
+      v.itens.forEach(it=>{ if(!porProd[it.nomeProd]) porProd[it.nomeProd]={qtd:0,tot:0}; porProd[it.nomeProd].qtd+=it.qtd; porProd[it.nomeProd].tot+=it.val*it.qtd; });
+    } else {
+      if(!porProd[v.nomeProd]) porProd[v.nomeProd]={qtd:0,tot:0}; porProd[v.nomeProd].qtd+=v.qtd||1; porProd[v.nomeProd].tot+=vTotal(v);
+    }
+  });
   const rank=Object.entries(porProd).sort((a,b)=>b[1].qtd-a[1].qtd).slice(0,8);
-
   const maxPag=Math.max(...Object.values(porPag),1);
 
   document.getElementById('rel-content').innerHTML=`
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--surface-2);border-radius:7px;border:1px solid var(--border-s)">
+      💡 <strong>Receita por competência:</strong> inclui parcelas de Fiado/Cartão que vencem no período, mesmo que a venda tenha sido feita em outro mês.
+    </div>
     <div class="grid g4" style="margin-bottom:22px">
-      <div class="metric"><span class="m-icon">💵</span><div class="m-lbl">Receita Total</div><div class="m-val g">${brl(rec)}</div><div class="m-sub">${vs.length} venda(s)</div></div>
-      <div class="metric"><span class="m-icon">📦</span><div class="m-lbl">Custo Total</div><div class="m-val r">${brl(cst)}</div></div>
+      <div class="metric"><span class="m-icon">💵</span><div class="m-lbl">Receita no Período</div><div class="m-val g">${brl(rec)}</div><div class="m-sub">${vendasNoPeriodo.size} venda(s) contribuindo</div></div>
+      <div class="metric"><span class="m-icon">📦</span><div class="m-lbl">Custo Proporcional</div><div class="m-val r">${brl(cst)}</div></div>
       <div class="metric"><span class="m-icon">📈</span><div class="m-lbl">Lucro Líquido</div><div class="m-val ${lucro>=0?'g':'r'}">${brl(lucro)}</div></div>
       <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">Margem</div><div class="m-val v">${margem.toFixed(1)}%</div></div>
     </div>
@@ -1335,11 +1677,12 @@ function renderRel() {
                 <span class="t-s">${brl(v)}</span>
               </div>
               <div class="prog-bar"><div class="prog-fill" style="width:${(v/maxPag*100).toFixed(0)}%"></div></div>
-              <div style="font-size:11px;color:var(--muted);margin-top:3px">${(v/rec*100).toFixed(1)}% do total</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">${rec>0?(v/rec*100).toFixed(1):0}% do total</div>
             </div>`).join('')}
       </div>
       <div class="fc" style="margin-bottom:0">
         <div class="fc-title"><span>🏆</span> Produtos Mais Vendidos</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Vendas feitas no período</div>
         ${!rank.length
           ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sem dados no período</div>'
           : rank.map(([nome,s],i)=>`
@@ -1390,7 +1733,7 @@ function limparTudo() {
 function renderConfig() {
   const d=dados();
   const kb=(JSON.stringify(d).length/1024).toFixed(1);
-  const totV=d.vendas.filter(v=>!v.cancelada).reduce((s,v)=>s+v.val*v.qtd,0);
+  const totV=d.vendas.filter(v=>!v.cancelada).reduce((s,v)=>s+vRecon(v),0);
 
   // account info card
   const id = getIdAtivo();
