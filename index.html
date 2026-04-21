@@ -137,6 +137,7 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .alert{display:flex;align-items:flex-start;gap:9px;padding:11px 15px;border-radius:8px;font-size:13px;margin-bottom:15px;line-height:1.45}
 .al-d{background:var(--danger-d);color:var(--danger);border:1px solid rgba(248,113,113,.2)}
 .al-s{background:var(--success-d);color:var(--success);border:1px solid rgba(52,211,153,.2)}
+.al-i{background:var(--info-d);color:var(--info);border:1px solid rgba(107,158,196,.25)}
 .al-w{background:var(--warning-d);color:var(--warning);border:1px solid rgba(251,191,36,.2)}
 
 /* CHART */
@@ -217,6 +218,17 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .cart-table .ct-rem{color:var(--danger);cursor:pointer;background:none;border:none;font-size:16px;line-height:1;padding:2px 5px;border-radius:5px;transition:background .15s}
 .cart-table .ct-rem:hover{background:var(--danger-d)}
 .parcelas-row{display:none}
+/* condicionais */
+.cond-status-aberto{background:rgba(107,158,196,.15);color:#4a7fa0;border:1px solid rgba(107,158,196,.3)}
+.cond-status-atrasado{background:rgba(201,78,109,.12);color:var(--danger);border:1px solid rgba(201,78,109,.3);font-weight:700}
+.cond-status-vendido{background:rgba(93,170,126,.12);color:var(--success);border:1px solid rgba(93,170,126,.3)}
+.cond-status-devolvido{background:rgba(168,112,144,.12);color:var(--muted);border:1px solid rgba(168,112,144,.25)}
+.cond-dias-ok{font-size:11px;color:var(--info);font-weight:600}
+.cond-dias-ats{font-size:11px;color:var(--danger);font-weight:700}
+.cond-mo-ov{position:fixed;inset:0;background:rgba(44,21,32,.55);z-index:5000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.cond-mo-ov.open{opacity:1;pointer-events:all}
+.cond-mo-box{background:var(--surface);border-radius:16px;padding:28px 28px 22px;box-shadow:0 20px 60px rgba(44,21,32,.25);max-width:420px;width:90%;transform:translateY(10px);transition:transform .2s}
+.cond-mo-ov.open .cond-mo-box{transform:translateY(0)}
 .prog-bar{height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden;margin-top:5px}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--primary-b));border-radius:3px;transition:width .5s ease}
 .rank-item{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--surface-2);border-radius:8px;margin-bottom:7px;border:1px solid var(--border-s);transition:border-color .15s}
@@ -335,6 +347,9 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
     <div class="nav-link" onclick="navTo('gastos')" data-p="gastos">
       <span class="nav-icon">💰</span><span class="nav-label">Gastos</span>
     </div>
+    <div class="nav-link" onclick="navTo('condicionais')" data-p="condicionais">
+      <span class="nav-icon">🔄</span><span class="nav-label">Condicionais</span>
+    </div>
     <div class="nav-sec">Relatórios</div>
     <div class="nav-link" onclick="navTo('historico')" data-p="historico">
       <span class="nav-icon">📋</span><span class="nav-label">Histórico de Vendas</span>
@@ -374,6 +389,7 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       <div class="bar-area" id="bar-chart"></div>
       <div style="display:flex;gap:10px;margin-top:5px" id="bar-labels"></div>
     </div>
+    <div id="dash-cond-alert" style="margin-bottom:12px"></div>
     <div class="tc">
       <div class="tt">
         <div class="tt-title">Vendas Recentes</div>
@@ -554,6 +570,97 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       <div id="gastos-table"></div>
     </div>
   </section>
+
+  <!-- CONDICIONAIS -->
+  <section class="section" id="sec-condicionais">
+    <div class="pg-header">
+      <div><div class="pg-title">Condicionais</div><div class="pg-sub">Peças em aprovação — vendidas ou devolvidas</div></div>
+    </div>
+    <div class="fc" id="cond-form-card">
+      <div class="fc-title" id="cond-form-ttl"><span>🔄</span> Registrar Condicional</div>
+      <div id="cond-alert"></div>
+      <!-- item adder -->
+      <div class="cart-section">
+        <div class="cart-section-title">Itens da condicional</div>
+        <div class="cart-add-row" style="grid-template-columns:1fr 120px 80px 110px auto">
+          <div class="fgrp">
+            <label>Produto</label>
+            <select id="cd-prod" onchange="aoSelecionarCondProd()"><option value="">Selecionar produto...</option></select>
+          </div>
+          <div class="fgrp">
+            <label>Tamanho</label>
+            <select id="cd-tam" onchange="atualizarCondEstInfo()"><option value="">—</option></select>
+          </div>
+          <div class="fgrp">
+            <label>Qtd</label>
+            <input type="number" id="cd-qtd" min="1" value="1">
+          </div>
+          <div class="fgrp">
+            <label>Valor Unit. (R$)</label>
+            <input type="number" id="cd-val" min="0" step="0.01" placeholder="0,00">
+          </div>
+          <button class="btn btn-p cart-add-btn" onclick="adicionarCondItem()">➕ Add</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:5px" id="cd-est-info"></div>
+      </div>
+      <div id="cond-cart-body"><div class="cart-empty">📦 Adicione os itens acima</div></div>
+      <div class="divider"></div>
+      <div class="fg fg4">
+        <div class="fgrp s2"><label>Nome do Cliente</label><input type="text" id="cd-cli" placeholder="Nome do cliente"></div>
+        <div class="fgrp"><label>Data de Saída</label><input type="date" id="cd-data"></div>
+        <div class="fgrp"><label>Prazo para Retorno</label><input type="date" id="cd-prazo"></div>
+        <div class="fgrp sf"><label>Observação</label><textarea id="cd-obs" placeholder="Observações opcionais..."></textarea></div>
+      </div>
+      <div class="fa">
+        <button class="btn btn-p" onclick="salvarCondicional()">💾 Salvar Condicional</button>
+        <button class="btn btn-g" onclick="cancelarCond()" id="btn-cancel-cond" style="display:none">✕ Cancelar</button>
+        <button class="btn btn-g" onclick="limparCond()">🔄 Limpar</button>
+      </div>
+    </div>
+    <!-- filters -->
+    <div class="fb" style="margin-bottom:8px">
+      <button class="btn btn-g btn-sm" onclick="setFiltCond('')" id="fc-todos">Todos</button>
+      <button class="btn btn-g btn-sm" onclick="setFiltCond('aberto')" id="fc-aberto">Em Aberto</button>
+      <button class="btn btn-d btn-sm" onclick="setFiltCond('atrasado')" id="fc-atrasado">⚠️ Atrasados</button>
+      <button class="btn btn-s btn-sm" onclick="setFiltCond('vendido')" id="fc-vendido">Vendidos</button>
+      <button class="btn btn-g btn-sm" onclick="setFiltCond('devolvido')" id="fc-devolvido">Devolvidos</button>
+    </div>
+    <div class="tc">
+      <div class="tt"><div class="tt-title">Lista de Condicionais</div><span class="bdg bv" id="cond-cnt"></span></div>
+      <div id="cond-table"></div>
+    </div>
+  </section>
+
+  <!-- MODAL CONDICIONAL → VENDA -->
+  <div id="cond-mo" class="cond-mo-ov" onclick="fecharCondMo()">
+    <div class="cond-mo-box" onclick="event.stopPropagation()">
+      <div style="font-size:28px;text-align:center;margin-bottom:8px">✅</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text);text-align:center;margin-bottom:4px">Registrar como Venda</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:18px">Confirme os dados para finalizar a venda.</div>
+      <div class="fg fg2">
+        <div class="fgrp"><label>Forma de Pagamento</label>
+          <select id="cond-pag" onchange="aoMudarCondPag()">
+            <option value="">Selecionar...</option>
+            <option>Dinheiro</option><option>PIX</option>
+            <option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Fiado</option>
+          </select>
+        </div>
+        <div class="fgrp parcelas-row" id="cond-parcelas-wrap">
+          <label>Nº de Parcelas</label>
+          <select id="cond-parcelas">
+            <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+            <option value="4">4×</option><option value="5">5×</option><option value="6">6×</option>
+            <option value="8">8×</option><option value="10">10×</option><option value="12">12×</option>
+          </select>
+        </div>
+        <div class="fgrp"><label>Data da Venda</label><input type="date" id="cond-data-venda"></div>
+      </div>
+      <div class="fa" style="margin-top:14px">
+        <button class="btn btn-s" onclick="confirmarCondVendido()">✅ Confirmar</button>
+        <button class="btn btn-g" onclick="fecharCondMo()">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- HISTÓRICO -->
   <section class="section" id="sec-historico">
@@ -886,10 +993,10 @@ function atualizarSbConta() {
 function dados() {
   try {
     const r = localStorage.getItem(getChave());
-    if (!r) return { produtos:[], vendas:[], gastos:[] };
+    if (!r) return { produtos:[], vendas:[], gastos:[], condicionais:[] };
     const d = JSON.parse(r);
-    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[] };
-  } catch { return { produtos:[], vendas:[], gastos:[] }; }
+    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[], condicionais:d.condicionais||[] };
+  } catch { return { produtos:[], vendas:[], gastos:[], condicionais:[] }; }
 }
 
 function salvar(d) { localStorage.setItem(getChave(), JSON.stringify(d)); }
@@ -908,6 +1015,7 @@ function navTo(page) {
     estoque: renderEstoque,
     venda: initVenda,
     gastos: renderGastos,
+    condicionais: initCondicionais,
     historico: renderHist,
     relatorios: renderRel,
     config: renderConfig
@@ -1033,6 +1141,20 @@ function renderDash() {
   `;
 
   renderGrafico(d);
+
+  // condicionais alert
+  const condAts = (d.condicionais||[]).filter(c=>c.status==='aberto'&&c.prazo&&c.prazo<hoje());
+  const condAbertos = (d.condicionais||[]).filter(c=>c.status==='aberto');
+  const condAlertEl = document.getElementById('dash-cond-alert');
+  if (condAlertEl) {
+    if (condAts.length) {
+      condAlertEl.innerHTML=`<div class="alert al-d" style="cursor:pointer" onclick="navTo('condicionais')">⚠️ <strong>${condAts.length} condicional(is) atrasada(s)!</strong> Clique para verificar.</div>`;
+    } else if (condAbertos.length) {
+      condAlertEl.innerHTML=`<div class="alert al-i" style="cursor:pointer" onclick="navTo('condicionais')">🔄 <strong>${condAbertos.length} condicional(is) em aberto.</strong> Clique para ver.</div>`;
+    } else {
+      condAlertEl.innerHTML='';
+    }
+  }
 
   const rec = [...va].sort((a,b)=>b.data>a.data?1:-1).slice(0,6);
   document.getElementById('dash-cnt').textContent = `${rec.length} recentes`;
@@ -1517,6 +1639,319 @@ function renderGastos() {
 }
 
 /* ============================================================
+   CONDICIONAIS
+   ============================================================ */
+let condCarrinho = [];   // [{prodId,nomeProd,tam,cor,qtd,val}]
+let editCondId   = null;
+let _condResolId = null;
+let _filtCond    = '';
+
+function initCondicionais() {
+  document.getElementById('cd-data').value = hoje();
+  // prazo default: 7 days from now
+  const p = new Date(); p.setDate(p.getDate()+7);
+  document.getElementById('cd-prazo').value = p.toISOString().slice(0,10);
+  const sel = document.getElementById('cd-prod');
+  sel.innerHTML = '<option value="">Selecionar produto...</option>';
+  dados().produtos.filter(p=>prodQtdTotal(p)>0).forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.id; o.textContent=`${p.nome}${p.cor?' — '+p.cor:''} (${prodQtdTotal(p)} un.)`;
+    sel.appendChild(o);
+  });
+  document.getElementById('cd-tam').innerHTML='<option value="">—</option>';
+  renderCondCarrinho();
+  renderCondicionais();
+}
+
+function aoSelecionarCondProd() {
+  const d=dados(), id=document.getElementById('cd-prod').value;
+  const p=d.produtos.find(x=>x.id===id);
+  const ts=document.getElementById('cd-tam');
+  ts.innerHTML='<option value="">Selecionar...</option>';
+  if (p) {
+    document.getElementById('cd-val').value=p.preco;
+    document.getElementById('cd-qtd').value=1;
+    prodTamanhos(p).filter(t=>t.qtd>0).forEach(t=>{
+      const o=document.createElement('option'); o.value=t.tam; o.textContent=`${t.tam} (${t.qtd} un.)`; ts.appendChild(o);
+    });
+    if (prodTamanhos(p).filter(t=>t.qtd>0).length===1) ts.value=prodTamanhos(p).filter(t=>t.qtd>0)[0].tam;
+    atualizarCondEstInfo();
+  } else {
+    document.getElementById('cd-val').value='';
+    document.getElementById('cd-est-info').textContent='';
+  }
+}
+
+function atualizarCondEstInfo() {
+  const d=dados(), id=document.getElementById('cd-prod').value, tam=document.getElementById('cd-tam').value;
+  const p=d.produtos.find(x=>x.id===id);
+  if (!p||!tam) { document.getElementById('cd-est-info').textContent=''; return; }
+  const t=prodTamanhos(p).find(x=>x.tam===tam);
+  document.getElementById('cd-est-info').textContent=t?`Estoque: ${t.qtd} un.`:'';
+}
+
+function adicionarCondItem() {
+  const prodId=document.getElementById('cd-prod').value;
+  const tam=document.getElementById('cd-tam').value;
+  const qtd=parseInt(document.getElementById('cd-qtd').value)||0;
+  const val=parseFloat(document.getElementById('cd-val').value)||0;
+  const alEl=document.getElementById('cond-alert'); alEl.innerHTML='';
+  if (!prodId) { alEl.innerHTML='<div class="alert al-d">⚠️ Selecione um produto.</div>'; return; }
+  if (!tam) { alEl.innerHTML='<div class="alert al-d">⚠️ Selecione um tamanho.</div>'; return; }
+  if (qtd<=0) { alEl.innerHTML='<div class="alert al-d">⚠️ Quantidade inválida.</div>'; return; }
+  if (val<=0) { alEl.innerHTML='<div class="alert al-d">⚠️ Informe o valor unitário.</div>'; return; }
+  const d=dados(), p=d.produtos.find(x=>x.id===prodId);
+  if (!p) return;
+  const tObj=prodTamanhos(p).find(x=>x.tam===tam);
+  const jaNoCart=condCarrinho.filter(c=>c.prodId===prodId&&c.tam===tam).reduce((s,c)=>s+c.qtd,0);
+  if ((tObj?tObj.qtd:0) < jaNoCart+qtd) {
+    alEl.innerHTML=`<div class="alert al-d">⚠️ Estoque insuficiente para ${tam}! Disponível: <strong>${tObj?tObj.qtd:0}</strong>.</div>`; return;
+  }
+  condCarrinho.push({prodId,nomeProd:p.nome,tam,cor:p.cor||'',qtd,val});
+  document.getElementById('cd-prod').value='';
+  document.getElementById('cd-tam').innerHTML='<option value="">—</option>';
+  document.getElementById('cd-qtd').value='1';
+  document.getElementById('cd-val').value='';
+  document.getElementById('cd-est-info').textContent='';
+  renderCondCarrinho();
+}
+
+function removerCondItem(idx) { condCarrinho.splice(idx,1); renderCondCarrinho(); }
+
+function renderCondCarrinho() {
+  const el=document.getElementById('cond-cart-body');
+  if (!condCarrinho.length) { el.innerHTML='<div class="cart-empty">📦 Adicione os itens acima</div>'; return; }
+  el.innerHTML=`<table class="cart-table">
+    <thead><tr><th>Produto</th><th>Tam.</th><th>Qtd</th><th>Valor</th><th>Subtotal</th><th></th></tr></thead>
+    <tbody>${condCarrinho.map((it,i)=>`<tr>
+      <td><strong>${it.nomeProd}</strong></td>
+      <td><span class="bdg bgr">${it.tam||'—'}</span></td>
+      <td>${it.qtd}</td>
+      <td class="t-m">${brl(it.val)}</td>
+      <td class="t-g">${brl(it.val*it.qtd)}</td>
+      <td><button class="ct-rem" onclick="removerCondItem(${i})">✕</button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function salvarCondicional() {
+  const cli=document.getElementById('cd-cli').value.trim();
+  const data=document.getElementById('cd-data').value;
+  const prazo=document.getElementById('cd-prazo').value;
+  const obs=document.getElementById('cd-obs').value.trim();
+  const alEl=document.getElementById('cond-alert'); alEl.innerHTML='';
+  if (!cli) { alEl.innerHTML='<div class="alert al-d">⚠️ Informe o nome do cliente.</div>'; return; }
+  if (!data||!prazo) { alEl.innerHTML='<div class="alert al-d">⚠️ Informe as datas.</div>'; return; }
+  if (!condCarrinho.length) { alEl.innerHTML='<div class="alert al-d">⚠️ Adicione ao menos um item.</div>'; return; }
+
+  const dd=dados();
+  // verify & deduct stock
+  for (const it of condCarrinho) {
+    const p=dd.produtos.find(x=>x.id===it.prodId);
+    if (!p) { alEl.innerHTML=`<div class="alert al-d">❌ Produto "${it.nomeProd}" não encontrado.</div>`; return; }
+    const tams=prodTamanhos(p);
+    const tObj=tams.find(x=>x.tam===it.tam);
+    if (!tObj||tObj.qtd<it.qtd) { alEl.innerHTML=`<div class="alert al-d">⚠️ Estoque insuficiente para "${it.nomeProd}" (${it.tam}).</div>`; return; }
+  }
+  for (const it of condCarrinho) {
+    const p=dd.produtos.find(x=>x.id===it.prodId);
+    const tams=prodTamanhos(p);
+    const tObj=tams.find(x=>x.tam===it.tam);
+    if (tObj) tObj.qtd-=it.qtd;
+    if (p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0;
+  }
+
+  if (editCondId) {
+    // editing: restore old stock first (already restored in editarCond)
+    const i=dd.condicionais.findIndex(c=>c.id===editCondId);
+    if (i!==-1) dd.condicionais[i]={...dd.condicionais[i],cli,data,prazo,obs,itens:[...condCarrinho]};
+    toast('Condicional atualizada!'); editCondId=null;
+    document.getElementById('cond-form-ttl').innerHTML='<span>🔄</span> Registrar Condicional';
+    document.getElementById('btn-cancel-cond').style.display='none';
+  } else {
+    dd.condicionais.push({id:uid(),cli,data,prazo,obs,status:'aberto',dataResol:null,itens:[...condCarrinho]});
+    toast('Condicional registrada! Estoque reservado.','info');
+  }
+  salvar(dd); limparCond(); renderCondicionais();
+  alEl.innerHTML='<div class="alert al-s">✅ Condicional salva!</div>';
+  setTimeout(()=>alEl.innerHTML='',4000);
+}
+
+function limparCond() {
+  condCarrinho=[];
+  ['cd-cli','cd-val','cd-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cd-prod').value='';
+  document.getElementById('cd-tam').innerHTML='<option value="">—</option>';
+  document.getElementById('cd-qtd').value='1';
+  document.getElementById('cd-data').value=hoje();
+  const p=new Date(); p.setDate(p.getDate()+7);
+  document.getElementById('cd-prazo').value=p.toISOString().slice(0,10);
+  document.getElementById('cd-est-info').textContent='';
+  renderCondCarrinho();
+}
+
+function cancelarCond() {
+  editCondId=null;
+  document.getElementById('cond-form-ttl').innerHTML='<span>🔄</span> Registrar Condicional';
+  document.getElementById('btn-cancel-cond').style.display='none';
+  limparCond();
+}
+
+function editarCond(id) {
+  const dd=dados(), c=dd.condicionais.find(x=>x.id===id); if(!c||c.status!=='aberto') return;
+  // restore stock before editing
+  for (const it of c.itens) {
+    const p=dd.produtos.find(x=>x.id===it.prodId); if(!p) continue;
+    const tams=prodTamanhos(p), tObj=tams.find(x=>x.tam===it.tam);
+    if (tObj) tObj.qtd+=it.qtd;
+    if (p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0;
+  }
+  salvar(dd);
+  editCondId=id;
+  condCarrinho=c.itens.map(it=>({...it}));
+  document.getElementById('cd-cli').value=c.cli;
+  document.getElementById('cd-data').value=c.data;
+  document.getElementById('cd-prazo').value=c.prazo;
+  document.getElementById('cd-obs').value=c.obs||'';
+  renderCondCarrinho();
+  // repopulate product selector
+  initCondicionais();
+  document.getElementById('cond-form-ttl').innerHTML='<span>✏️</span> Editar Condicional';
+  document.getElementById('btn-cancel-cond').style.display='inline-flex';
+  document.getElementById('cond-form-card').scrollIntoView({behavior:'smooth'});
+}
+
+function devolverCond(id) {
+  const dd=dados(), c=dd.condicionais.find(x=>x.id===id); if(!c||c.status!=='aberto') return;
+  abrirMo('↩️','Devolver Condicional',`Marcar condicional de "${c.cli}" como devolvida? O estoque será restaurado.`,'Confirmar','btn-w',()=>{
+    const d2=dados(), c2=d2.condicionais.find(x=>x.id===id); if(!c2) return;
+    c2.status='devolvido'; c2.dataResol=hoje();
+    for (const it of c2.itens) {
+      const p=d2.produtos.find(x=>x.id===it.prodId); if(!p) continue;
+      const tams=prodTamanhos(p), tObj=tams.find(x=>x.tam===it.tam);
+      if (tObj) tObj.qtd+=it.qtd;
+      if (p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0;
+    }
+    salvar(d2); toast('Condicional devolvida. Estoque restaurado.','warning'); renderCondicionais();
+  });
+}
+
+function resolverVendido(id) {
+  _condResolId=id;
+  document.getElementById('cond-data-venda').value=hoje();
+  document.getElementById('cond-pag').value='';
+  document.getElementById('cond-parcelas').value='1';
+  document.getElementById('cond-parcelas-wrap').style.display='none';
+  document.getElementById('cond-mo').classList.add('open');
+}
+
+function fecharCondMo() { document.getElementById('cond-mo').classList.remove('open'); _condResolId=null; }
+
+function aoMudarCondPag() {
+  const pag=document.getElementById('cond-pag').value;
+  document.getElementById('cond-parcelas-wrap').style.display=(pag==='Fiado'||pag==='Cartão de Crédito')?'flex':'none';
+}
+
+function confirmarCondVendido() {
+  const pag=document.getElementById('cond-pag').value;
+  const data=document.getElementById('cond-data-venda').value;
+  const parcelas=parseInt(document.getElementById('cond-parcelas').value)||1;
+  if (!pag||!data) { toast('Preencha pagamento e data','error'); return; }
+  const dd=dados(), cond=dd.condicionais.find(c=>c.id===_condResolId);
+  if (!cond||cond.status!=='aberto') { fecharCondMo(); return; }
+  const primeiro=cond.itens[0];
+  const nomeRes=cond.itens.length===1?primeiro.nomeProd:`${primeiro.nomeProd} +${cond.itens.length-1}`;
+  dd.vendas.push({
+    id:uid(), cli:cond.cli, pag, obs:cond.obs||'', data, cancelada:false,
+    parcelas:(pag==='Fiado'||pag==='Cartão de Crédito')?parcelas:1,
+    itens:cond.itens.map(it=>({...it})),
+    prodId:primeiro.prodId, nomeProd:nomeRes, tam:primeiro.tam, cor:primeiro.cor, qtd:primeiro.qtd, val:primeiro.val
+  });
+  cond.status='vendido'; cond.dataResol=data;
+  salvar(dd); fecharCondMo();
+  toast('🎉 Condicional convertida em venda!');
+  renderCondicionais();
+}
+
+function excluirCond(id) {
+  const dd=dados(), c=dd.condicionais.find(x=>x.id===id);
+  abrirMo('🗑️','Excluir Condicional',`Excluir condicional de "${c?.cli}"? ${c?.status==='aberto'?'O estoque será restaurado.':''}`,'Excluir','btn-d',()=>{
+    const d2=dados(), c2=d2.condicionais.find(x=>x.id===id); if(!c2) return;
+    if (c2.status==='aberto') {
+      for (const it of c2.itens) {
+        const p=d2.produtos.find(x=>x.id===it.prodId); if(!p) continue;
+        const tams=prodTamanhos(p), tObj=tams.find(x=>x.tam===it.tam);
+        if (tObj) tObj.qtd+=it.qtd;
+        if (p.tamanhos) p.tamanhos=tams; else p.qtd=tams[0]?.qtd||0;
+      }
+    }
+    d2.condicionais=d2.condicionais.filter(x=>x.id!==id);
+    salvar(d2); toast('Condicional excluída','warning'); renderCondicionais();
+  });
+}
+
+let _filtCondAtual='';
+function setFiltCond(f) { _filtCondAtual=f; renderCondicionais(); }
+
+function condStatusInfo(c) {
+  if (c.status==='vendido') return {cls:'cond-status-vendido',label:'Vendido',dias:''};
+  if (c.status==='devolvido') return {cls:'cond-status-devolvido',label:'Devolvido',dias:''};
+  const hoje2=hoje(), atrasado=c.prazo&&c.prazo<hoje2;
+  if (atrasado) {
+    const d=Math.round((new Date(hoje2)-new Date(c.prazo))/(86400000));
+    return {cls:'cond-status-atrasado',label:'⚠️ Atrasado',dias:`<span class="cond-dias-ats">${d} dia(s) de atraso</span>`};
+  }
+  const d=c.prazo?Math.round((new Date(c.prazo)-new Date(hoje2))/(86400000)):null;
+  return {cls:'cond-status-aberto',label:'Em Aberto',dias:d!==null?`<span class="cond-dias-ok">${d} dia(s) restante(s)</span>`:''};
+}
+
+function renderCondicionais() {
+  const dd=dados();
+  let lista=[...dd.condicionais].sort((a,b)=>b.data>a.data?1:-1);
+  const f=_filtCondAtual;
+  if (f==='aberto') lista=lista.filter(c=>c.status==='aberto'&&(!c.prazo||c.prazo>=hoje()));
+  else if (f==='atrasado') lista=lista.filter(c=>c.status==='aberto'&&c.prazo&&c.prazo<hoje());
+  else if (f==='vendido') lista=lista.filter(c=>c.status==='vendido');
+  else if (f==='devolvido') lista=lista.filter(c=>c.status==='devolvido');
+
+  const atrasados=dd.condicionais.filter(c=>c.status==='aberto'&&c.prazo&&c.prazo<hoje()).length;
+  document.getElementById('cond-cnt').textContent=`${dd.condicionais.length} total${atrasados?` · ⚠️ ${atrasados} atrasado(s)`:''}`;
+  if (atrasados) document.getElementById('cond-cnt').className='bdg br'; else document.getElementById('cond-cnt').className='bdg bv';
+
+  if (!lista.length) {
+    document.getElementById('cond-table').innerHTML=`<div class="es"><div class="es-ic">🔄</div><div class="es-t">Nenhuma condicional${f?' neste filtro':''}</div><div class="es-s">Registre uma condicional acima</div></div>`;
+    return;
+  }
+
+  document.getElementById('cond-table').innerHTML=`<table>
+    <thead><tr><th>Data</th><th>Prazo</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Status</th><th>Obs</th><th>Ações</th></tr></thead>
+    <tbody>${lista.map(c=>{
+      const si=condStatusInfo(c);
+      const tot=c.itens.reduce((s,it)=>s+it.val*it.qtd,0);
+      const itensStr=c.itens.map(it=>`${it.nomeProd} <span class="bdg bgr">${it.tam}</span> ×${it.qtd}`).join('<br>');
+      const aberto=c.status==='aberto';
+      return `<tr style="${c.status==='devolvido'?'opacity:.55':''}">
+        <td>${fdt(c.data)}</td>
+        <td>${fdt(c.prazo)}<br>${si.dias}</td>
+        <td class="t-s">${c.cli}</td>
+        <td style="white-space:normal">${itensStr}</td>
+        <td class="t-g">${brl(tot)}</td>
+        <td><span class="bdg ${si.cls}" style="white-space:nowrap">${si.label}</span></td>
+        <td style="font-size:11px;color:var(--muted);max-width:120px;white-space:normal">${c.obs||'—'}</td>
+        <td>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            ${aberto?`<button class="btn btn-g btn-sm btn-ico" onclick="editarCond('${c.id}')" title="Editar">✏️</button>`:''}
+            ${aberto?`<button class="btn btn-s btn-sm" onclick="resolverVendido('${c.id}')">✅ Vendido</button>`:''}
+            ${aberto?`<button class="btn btn-w btn-sm" onclick="devolverCond('${c.id}')">↩️ Devolver</button>`:''}
+            <button class="btn btn-d btn-sm btn-ico" onclick="excluirCond('${c.id}')" title="Excluir">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+/* ============================================================
    HISTÓRICO
    ============================================================ */
 function limparFiltHist() {
@@ -1596,7 +2031,7 @@ function renderHist() {
 
   document.getElementById('hist-table').innerHTML = !lista.length
     ? `<div class="es"><div class="es-ic">📋</div><div class="es-t">Nenhuma venda no período</div><div class="es-s">Ajuste os filtros ou registre uma venda</div></div>`
-    : `<table><thead><tr><th>Data</th><th>Cliente</th><th>Produto(s)</th><th>Qtd</th><th>Total</th><th>Pagamento</th><th>Status</th><th></th></tr></thead>
+    : `<table><thead><tr><th>Data</th><th>Cliente</th><th>Produto(s)</th><th>Qtd</th><th>Total</th><th>Pagamento</th><th>Obs</th><th>Status</th><th></th></tr></thead>
         <tbody>${lista.map(v=>`<tr style="${v.cancelada?'opacity:.45':''}">
           <td>${fdt(v.data)}</td>
           <td class="t-s">${v.cli}</td>
@@ -1604,6 +2039,7 @@ function renderHist() {
           <td>${histQtd(v)}</td>
           <td class="${v.cancelada?'t-m':'t-g'}">${brl(vTotal(v))}${histParc(v)}</td>
           <td>${bdgPag(v.pag)}</td>
+          <td style="font-size:12px;color:var(--muted);max-width:140px;white-space:normal">${v.obs||'—'}</td>
           <td>${v.cancelada?'<span class="bdg br">Cancelada</span>':'<span class="bdg bg">Ativa</span>'}</td>
           <td>${!v.cancelada?`<button class="btn btn-w btn-sm" onclick="cancelarVenda('${v.id}')">↩️ Estornar</button>`:''}</td>
         </tr>`).join('')}</tbody></table>`;
