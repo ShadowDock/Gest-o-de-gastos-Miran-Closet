@@ -677,6 +677,13 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
           <option>Cartão de Crédito</option><option>Cartão de Débito</option><option>Fiado</option>
         </select>
       </div>
+      <div class="fgrp" style="min-width:150px"><label>Status</label>
+        <select id="h-status" onchange="renderHist()">
+          <option value="">Todas</option>
+          <option value="ativa">Ativas</option>
+          <option value="cancelada">Canceladas</option>
+        </select>
+      </div>
       <button class="btn btn-g btn-sm" onclick="limparFiltHist()" style="align-self:flex-end">🔄 Limpar</button>
     </div>
     <div class="sr" id="hist-stats"></div>
@@ -1957,6 +1964,7 @@ function renderCondicionais() {
 function limparFiltHist() {
   ['h-ini','h-fim'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('h-pag').value='';
+  document.getElementById('h-status').value='';
   renderHist();
 }
 
@@ -1991,16 +1999,29 @@ function cancelarVenda(id) {
   });
 }
 
+function excluirVenda(id) {
+  const d=dados(), v=d.vendas.find(x=>x.id===id);
+  if (!v?.cancelada) return;
+  abrirMo('🗑️','Excluir Venda Cancelada',`Excluir permanentemente a venda de "${v.nomeProd}" para ${v.cli}? Esta ação é irreversível.`,'Excluir','btn-d',()=>{
+    const dd=dados();
+    dd.vendas=dd.vendas.filter(x=>x.id!==id);
+    salvar(dd); toast('Venda excluída.','warning'); renderHist();
+  });
+}
+
 function renderHist() {
   const d=dados();
   const ini=document.getElementById('h-ini').value;
   const fim=document.getElementById('h-fim').value;
   const pag=document.getElementById('h-pag').value;
+  const status=document.getElementById('h-status').value;
 
   let lista=[...d.vendas].sort((a,b)=>b.data>a.data?1:-1);
   if (ini) lista=lista.filter(v=>v.data>=ini);
   if (fim) lista=lista.filter(v=>v.data<=fim);
   if (pag) lista=lista.filter(v=>v.pag===pag);
+  if (status==='ativa') lista=lista.filter(v=>!v.cancelada);
+  if (status==='cancelada') lista=lista.filter(v=>v.cancelada);
 
   const ativas=lista.filter(v=>!v.cancelada);
   const totP=ativas.reduce((s,v)=>s+vTotal(v),0);
@@ -2041,7 +2062,9 @@ function renderHist() {
           <td>${bdgPag(v.pag)}</td>
           <td style="font-size:12px;color:var(--muted);max-width:140px;white-space:normal">${v.obs||'—'}</td>
           <td>${v.cancelada?'<span class="bdg br">Cancelada</span>':'<span class="bdg bg">Ativa</span>'}</td>
-          <td>${!v.cancelada?`<button class="btn btn-w btn-sm" onclick="cancelarVenda('${v.id}')">↩️ Estornar</button>`:''}</td>
+          <td>
+            ${!v.cancelada?`<button class="btn btn-w btn-sm" onclick="cancelarVenda('${v.id}')">↩️ Estornar</button>`:`<button class="btn btn-d btn-sm btn-ico" onclick="excluirVenda('${v.id}')" title="Excluir permanentemente">🗑️</button>`}
+          </td>
         </tr>`).join('')}</tbody></table>`;
 }
 
