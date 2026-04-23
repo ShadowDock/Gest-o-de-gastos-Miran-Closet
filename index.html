@@ -218,6 +218,27 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .cart-table .ct-rem{color:var(--danger);cursor:pointer;background:none;border:none;font-size:16px;line-height:1;padding:2px 5px;border-radius:5px;transition:background .15s}
 .cart-table .ct-rem:hover{background:var(--danger-d)}
 .parcelas-row{display:none}
+/* fiado */
+.fiado-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:14px;transition:box-shadow .2s}
+.fiado-card:hover{box-shadow:0 4px 18px rgba(212,96,127,.1)}
+.fiado-card.liquidado{opacity:.6}
+.fiado-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.fiado-cli{font-size:15px;font-weight:700;color:var(--text)}
+.fiado-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.fiado-total{text-align:right}
+.fiado-total-val{font-size:20px;font-weight:800;color:var(--text)}
+.fiado-total-lbl{font-size:11px;color:var(--muted)}
+.fiado-prog{margin-bottom:10px}
+.fiado-prog-lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.fiado-pags{border-top:1px solid var(--border-s);padding-top:10px;margin-top:10px}
+.fiado-pags-ttl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:7px}
+.fiado-pag-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:6px;font-size:13px;background:var(--surface-2);margin-bottom:4px}
+.fiado-pag-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:0 3px;opacity:.6}
+.fiado-pag-del:hover{opacity:1}
+.fiado-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:8px}
+.fiado-saldo{font-size:13px;font-weight:700}
+.fiado-saldo.ok{color:var(--success)}
+.fiado-saldo.pend{color:var(--warning)}
 /* condicionais */
 .cond-status-aberto{background:rgba(107,158,196,.15);color:#4a7fa0;border:1px solid rgba(107,158,196,.3)}
 .cond-status-atrasado{background:rgba(201,78,109,.12);color:var(--danger);border:1px solid rgba(201,78,109,.3);font-weight:700}
@@ -349,6 +370,9 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
     </div>
     <div class="nav-link" onclick="navTo('condicionais')" data-p="condicionais">
       <span class="nav-icon">🔄</span><span class="nav-label">Condicionais</span>
+    </div>
+    <div class="nav-link" onclick="navTo('fiado')" data-p="fiado">
+      <span class="nav-icon">📒</span><span class="nav-label">Fiado</span>
     </div>
     <div class="nav-sec">Relatórios</div>
     <div class="nav-link" onclick="navTo('historico')" data-p="historico">
@@ -570,6 +594,48 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       <div id="gastos-table"></div>
     </div>
   </section>
+
+  <!-- FIADO -->
+  <section class="section" id="sec-fiado">
+    <div class="pg-header">
+      <div><div class="pg-title">Fiado</div><div class="pg-sub">Controle de contas a receber — pagamentos livres</div></div>
+    </div>
+    <!-- summary -->
+    <div class="grid g4" id="fiado-resumo" style="margin-bottom:18px"></div>
+    <!-- filters -->
+    <div class="fb" style="margin-bottom:14px">
+      <div class="fgrp" style="min-width:175px"><label>Buscar cliente</label>
+        <input type="text" id="fiado-busca" placeholder="Nome do cliente..." oninput="renderFiado()">
+      </div>
+      <div class="fgrp"><label>Status</label>
+        <select id="fiado-filt" onchange="renderFiado()">
+          <option value="">Todos</option>
+          <option value="pendente">Pendentes</option>
+          <option value="liquidado">Liquidados</option>
+        </select>
+      </div>
+    </div>
+    <div id="fiado-lista"></div>
+  </section>
+
+  <!-- MODAL REGISTRAR PAGAMENTO FIADO -->
+  <div id="fiado-mo" class="cond-mo-ov" onclick="fecharFiadoMo()">
+    <div class="cond-mo-box" onclick="event.stopPropagation()" style="max-width:380px">
+      <div style="font-size:26px;text-align:center;margin-bottom:6px">💵</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);text-align:center;margin-bottom:4px">Registrar Entrada</div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:16px" id="fiado-mo-sub"></div>
+      <div class="fg fg2">
+        <div class="fgrp"><label>Data do Pagamento</label><input type="date" id="fp-data"></div>
+        <div class="fgrp"><label>Valor Recebido (R$)</label><input type="number" id="fp-val" min="0.01" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div class="fgrp" style="margin-top:4px"><label>Observação (opcional)</label><input type="text" id="fp-obs" placeholder="Ex: parcela janeiro"></div>
+      <div style="margin-top:10px;padding:10px;background:var(--surface-2);border-radius:8px;font-size:12px;color:var(--muted)" id="fiado-mo-saldo"></div>
+      <div class="fa" style="margin-top:14px">
+        <button class="btn btn-p" onclick="salvarPagFiado()">💾 Registrar</button>
+        <button class="btn btn-g" onclick="fecharFiadoMo()">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- CONDICIONAIS -->
   <section class="section" id="sec-condicionais">
@@ -1022,6 +1088,7 @@ function navTo(page) {
     estoque: renderEstoque,
     venda: initVenda,
     gastos: renderGastos,
+    fiado: renderFiado,
     condicionais: initCondicionais,
     historico: renderHist,
     relatorios: renderRel,
@@ -1152,15 +1219,15 @@ function renderDash() {
   // condicionais alert
   const condAts = (d.condicionais||[]).filter(c=>c.status==='aberto'&&c.prazo&&c.prazo<hoje());
   const condAbertos = (d.condicionais||[]).filter(c=>c.status==='aberto');
+  const fiadoPend = d.vendas.filter(v=>v.pag==='Fiado'&&!v.cancelada&&saldoFiado(v)>0.001);
+  const fiadoSaldo = fiadoPend.reduce((s,v)=>s+saldoFiado(v),0);
   const condAlertEl = document.getElementById('dash-cond-alert');
   if (condAlertEl) {
-    if (condAts.length) {
-      condAlertEl.innerHTML=`<div class="alert al-d" style="cursor:pointer" onclick="navTo('condicionais')">⚠️ <strong>${condAts.length} condicional(is) atrasada(s)!</strong> Clique para verificar.</div>`;
-    } else if (condAbertos.length) {
-      condAlertEl.innerHTML=`<div class="alert al-i" style="cursor:pointer" onclick="navTo('condicionais')">🔄 <strong>${condAbertos.length} condicional(is) em aberto.</strong> Clique para ver.</div>`;
-    } else {
-      condAlertEl.innerHTML='';
-    }
+    let alerts='';
+    if (condAts.length) alerts+=`<div class="alert al-d" style="cursor:pointer;margin-bottom:6px" onclick="navTo('condicionais')">⚠️ <strong>${condAts.length} condicional(is) atrasada(s)!</strong> Clique para verificar.</div>`;
+    else if (condAbertos.length) alerts+=`<div class="alert al-i" style="cursor:pointer;margin-bottom:6px" onclick="navTo('condicionais')">🔄 <strong>${condAbertos.length} condicional(is) em aberto.</strong> Clique para ver.</div>`;
+    if (fiadoPend.length) alerts+=`<div class="alert al-i" style="cursor:pointer;margin-bottom:6px" onclick="navTo('fiado')">📒 <strong>${fiadoPend.length} fiado(s) pendente(s)</strong> · ${brl(fiadoSaldo)} a receber. Clique para registrar entradas.</div>`;
+    condAlertEl.innerHTML=alerts;
   }
 
   const rec = [...va].sort((a,b)=>b.data>a.data?1:-1).slice(0,6);
@@ -1359,19 +1426,35 @@ function vCusto(v, prods) {
 
 // Gera entradas de receita reconhecida por mês:
 // [{mes:'YYYY-MM', val:number, cst:number, pag:string}]
-// Para parcelamentos: 1 entrada por parcela, em meses consecutivos.
-// Para pagamentos à vista: 1 entrada no mês da venda.
+// Fiado: baseado em pagamentos reais registrados.
+// Cartão de Crédito: parcelas fixas mensais.
+// Demais: 1 entrada no mês da venda.
 function gerarParcelas(v, prods) {
   const tot = vTotal(v);
   const cstTot = vCusto(v, prods);
+
+  // Fiado: reconhece somente os pagamentos efetivamente registrados
+  if (v.pag==='Fiado') {
+    const pags = v.pagamentos||[];
+    if (!pags.length) return []; // nada reconhecido até ter um pagamento
+    return pags.map(pg=>({
+      mes: pg.data.slice(0,7),
+      val: pg.valor,
+      cst: tot>0 ? cstTot*(pg.valor/tot) : 0,
+      pag: 'Fiado'
+    }));
+  }
+
+  // Cartão de Crédito: parcelas fixas
   const parc = parseInt(v.parcelas)||1;
-  if ((v.pag==='Fiado'||v.pag==='Cartão de Crédito') && parc>1 && v.data) {
+  if (v.pag==='Cartão de Crédito' && parc>1 && v.data) {
     const [yr,mo] = v.data.slice(0,7).split('-').map(Number);
     return Array.from({length:parc}, (_,i)=>{
       const tm=mo-1+i, y=yr+Math.floor(tm/12), m=tm%12+1;
       return {mes:`${y}-${String(m).padStart(2,'0')}`, val:tot/parc, cst:cstTot/parc, pag:v.pag};
     });
   }
+
   return [{mes:v.data?v.data.slice(0,7):'', val:tot, cst:cstTot, pag:v.pag}];
 }
 
@@ -1434,7 +1517,8 @@ function atualizarEstInfo() {
 function aoMudarPagamento() {
   const pag=document.getElementById('v-pag').value;
   const wrap=document.getElementById('v-parcelas-wrap');
-  if (pag==='Fiado'||pag==='Cartão de Crédito') {
+  // Parcelas fixas apenas para Cartão de Crédito. Fiado tem gestão própria na aba Fiado.
+  if (pag==='Cartão de Crédito') {
     wrap.style.display='flex';
   } else {
     wrap.style.display='none';
@@ -1563,7 +1647,9 @@ function registrarVenda() {
     obs,
     data,
     cancelada:false,
-    parcelas:(pag==='Fiado'||pag==='Cartão de Crédito')?parcelas:1,
+    parcelas:pag==='Cartão de Crédito'?parcelas:1,
+    // Fiado: pagamentos livres registrados na aba Fiado
+    pagamentos: pag==='Fiado' ? [] : undefined,
     // multi-item
     itens:carrinho.map(it=>({prodId:it.prodId,nomeProd:it.nome,tam:it.tam,cor:it.cor,qtd:it.qtd,val:it.val})),
     // legacy compat fields (first item)
@@ -1643,6 +1729,148 @@ function renderGastos() {
           <td class="t-r">${brl(g.val)}</td>
           <td><button class="btn btn-d btn-sm btn-ico" onclick="excluirGasto('${g.id}')" title="Excluir">🗑️</button></td>
         </tr>`).join('')}</tbody></table>`;
+}
+
+/* ============================================================
+   FIADO
+   ============================================================ */
+let _fiadoMoId = null;
+
+function totalPagoFiado(v) {
+  return (v.pagamentos||[]).reduce((s,p)=>s+p.valor,0);
+}
+function saldoFiado(v) { return Math.max(0, vTotal(v) - totalPagoFiado(v)); }
+function liquidado(v)  { return saldoFiado(v)<=0.001; }
+
+function statusFiado(v) {
+  if (liquidado(v)) return {cls:'cond-status-vendido', label:'✅ Liquidado'};
+  const pags=v.pagamentos||[];
+  if (!pags.length) {
+    const dias=Math.round((new Date(hoje())-new Date(v.data))/(86400000));
+    return {cls:'cond-status-atrasado', label:`⚠️ Sem pagamento · ${dias}d`};
+  }
+  const ultima=pags.reduce((a,b)=>a.data>b.data?a:b);
+  const dias=Math.round((new Date(hoje())-new Date(ultima.data))/(86400000));
+  if (dias>30) return {cls:'cond-status-atrasado', label:`⚠️ ${dias}d sem entrada`};
+  return {cls:'cond-status-aberto', label:`Em dia · última há ${dias}d`};
+}
+
+function renderFiado() {
+  const d=dados();
+  const busca=(document.getElementById('fiado-busca')?.value||'').toLowerCase();
+  const filt=document.getElementById('fiado-filt')?.value||'';
+
+  let lista=d.vendas.filter(v=>v.pag==='Fiado'&&!v.cancelada);
+  if (busca) lista=lista.filter(v=>(v.cli||'').toLowerCase().includes(busca));
+  if (filt==='pendente') lista=lista.filter(v=>!liquidado(v));
+  if (filt==='liquidado') lista=lista.filter(v=>liquidado(v));
+  lista=[...lista].sort((a,b)=>b.data>a.data?1:-1);
+
+  // summary
+  const totGeral=lista.reduce((s,v)=>s+vTotal(v),0);
+  const totPago=lista.reduce((s,v)=>s+totalPagoFiado(v),0);
+  const totSaldo=lista.reduce((s,v)=>s+saldoFiado(v),0);
+  const qtdPend=lista.filter(v=>!liquidado(v)).length;
+  document.getElementById('fiado-resumo').innerHTML=`
+    <div class="metric"><span class="m-icon">📒</span><div class="m-lbl">Total Fiado</div><div class="m-val v">${brl(totGeral)}</div><div class="m-sub">${lista.length} conta(s)</div></div>
+    <div class="metric"><span class="m-icon">✅</span><div class="m-lbl">Total Recebido</div><div class="m-val g">${brl(totPago)}</div></div>
+    <div class="metric"><span class="m-icon">⏳</span><div class="m-lbl">A Receber</div><div class="m-val ${totSaldo>0?'r':'g'}">${brl(totSaldo)}</div><div class="m-sub">${qtdPend} pendente(s)</div></div>
+    <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">% Recebido</div><div class="m-val v">${totGeral>0?((totPago/totGeral)*100).toFixed(1):0}%</div></div>
+  `;
+
+  if (!lista.length) {
+    document.getElementById('fiado-lista').innerHTML=`<div class="es"><div class="es-ic">📒</div><div class="es-t">Nenhuma venda no fiado${busca||filt?' neste filtro':''}</div><div class="es-s">Registre uma venda com pagamento Fiado</div></div>`;
+    return;
+  }
+
+  document.getElementById('fiado-lista').innerHTML=lista.map(v=>{
+    const tot=vTotal(v), pago=totalPagoFiado(v), saldo=saldoFiado(v);
+    const pct=tot>0?Math.min((pago/tot)*100,100):0;
+    const st=statusFiado(v);
+    const liq=liquidado(v);
+    const itensStr=(v.itens&&v.itens.length?v.itens:([{nomeProd:v.nomeProd,tam:v.tam}]))
+      .map(it=>`${it.nomeProd}${it.tam?` <span class="bdg bgr">${it.tam}</span>`:''}`).join(' · ');
+    const pags=v.pagamentos||[];
+    return `<div class="fiado-card${liq?' liquidado':''}">
+      <div class="fiado-top">
+        <div>
+          <div class="fiado-cli">${v.cli}</div>
+          <div class="fiado-meta">${fdt(v.data)} · ${itensStr}</div>
+          ${v.obs?`<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ${v.obs}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <span class="bdg ${st.cls}" style="white-space:nowrap">${st.label}</span>
+          <div class="fiado-total">
+            <div class="fiado-total-val">${brl(tot)}</div>
+            <div class="fiado-total-lbl">total da venda</div>
+          </div>
+        </div>
+      </div>
+      <div class="fiado-prog">
+        <div class="fiado-prog-lbl">
+          <span>Recebido: <strong>${brl(pago)}</strong></span>
+          <span>Saldo: <strong class="${saldo>0?'t-r':'t-g'}">${brl(saldo)}</strong></span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct.toFixed(0)}%"></div></div>
+      </div>
+      ${pags.length?`
+      <div class="fiado-pags">
+        <div class="fiado-pags-ttl">Entradas registradas</div>
+        ${pags.map((pg,i)=>`<div class="fiado-pag-item">
+          <span>${fdt(pg.data)}${pg.obs?` · <em style="color:var(--muted)">${pg.obs}</em>`:''}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <strong class="t-g">${brl(pg.valor)}</strong>
+            <button class="fiado-pag-del" onclick="excluirPagFiado('${v.id}',${i})" title="Remover entrada">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
+      <div class="fiado-footer">
+        <div class="fiado-saldo ${liq?'ok':'pend'}">${liq?'✅ Conta liquidada':`⏳ Faltam ${brl(saldo)}`}</div>
+        ${!liq?`<button class="btn btn-p btn-sm" onclick="abrirPagFiado('${v.id}')">💵 Registrar Entrada</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+let _fiadoVendaId=null;
+function abrirPagFiado(vendaId) {
+  _fiadoVendaId=vendaId;
+  const d=dados(), v=d.vendas.find(x=>x.id===vendaId);
+  if (!v) return;
+  document.getElementById('fp-data').value=hoje();
+  document.getElementById('fp-val').value='';
+  document.getElementById('fp-obs').value='';
+  document.getElementById('fiado-mo-sub').textContent=`${v.cli} — ${fdt(v.data)}`;
+  const saldo=saldoFiado(v);
+  document.getElementById('fiado-mo-saldo').innerHTML=
+    `Saldo devedor: <strong style="color:var(--danger)">${brl(saldo)}</strong> &nbsp;·&nbsp; Pago até agora: <strong>${brl(totalPagoFiado(v))}</strong>`;
+  document.getElementById('fiado-mo').classList.add('open');
+}
+function fecharFiadoMo() { document.getElementById('fiado-mo').classList.remove('open'); _fiadoVendaId=null; }
+
+function salvarPagFiado() {
+  const data=document.getElementById('fp-data').value;
+  const valor=parseFloat(document.getElementById('fp-val').value)||0;
+  const obs=document.getElementById('fp-obs').value.trim();
+  if (!data) { toast('Informe a data','error'); return; }
+  if (valor<=0) { toast('Informe um valor válido','error'); return; }
+  const dd=dados(), v=dd.vendas.find(x=>x.id===_fiadoVendaId);
+  if (!v) return;
+  if (!v.pagamentos) v.pagamentos=[];
+  const saldo=saldoFiado(v);
+  if (valor>saldo+0.001) { toast(`Valor maior que o saldo devedor (${brl(saldo)})!`,'error'); return; }
+  v.pagamentos.push({id:uid(),data,valor,obs});
+  salvar(dd);
+  fecharFiadoMo();
+  toast(`💵 Entrada de ${brl(valor)} registrada!`);
+  renderFiado();
+}
+
+function excluirPagFiado(vendaId,idx) {
+  abrirMo('🗑️','Remover Entrada','Deseja remover este pagamento? O saldo será restaurado.','Remover','btn-d',()=>{
+    const dd=dados(), v=dd.vendas.find(x=>x.id===vendaId);
+    if (v&&v.pagamentos) { v.pagamentos.splice(idx,1); salvar(dd); toast('Entrada removida','warning'); renderFiado(); }
+  });
 }
 
 /* ============================================================
