@@ -239,6 +239,20 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .fiado-saldo{font-size:13px;font-weight:700}
 .fiado-saldo.ok{color:var(--success)}
 .fiado-saldo.pend{color:var(--warning)}
+/* encomendas */
+.enc-status-aguardando{background:rgba(201,125,66,.12);color:var(--warning);border:1px solid rgba(201,125,66,.3);font-weight:700}
+.enc-status-chegou{background:rgba(107,158,196,.15);color:#4a7fa0;border:1px solid rgba(107,158,196,.3);font-weight:700}
+.enc-status-entregue{background:rgba(93,170,126,.12);color:var(--success);border:1px solid rgba(93,170,126,.3)}
+.enc-status-cancelada{background:rgba(168,112,144,.12);color:var(--muted);border:1px solid rgba(168,112,144,.25)}
+.enc-status-atrasada{background:rgba(201,78,109,.12);color:var(--danger);border:1px solid rgba(201,78,109,.3);font-weight:700}
+.enc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px;transition:box-shadow .2s}
+.enc-card:hover{box-shadow:0 4px 18px rgba(212,96,127,.1)}
+.enc-card.entregue,.enc-card.cancelada{opacity:.55}
+.enc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.enc-cli{font-size:15px;font-weight:700;color:var(--text)}
+.enc-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.enc-desc{font-size:13px;color:var(--text-2);margin:8px 0;padding:8px 12px;background:var(--surface-2);border-radius:7px;border-left:3px solid var(--primary-dim)}
+.enc-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--border-s)}
 /* condicionais */
 .cond-status-aberto{background:rgba(107,158,196,.15);color:#4a7fa0;border:1px solid rgba(107,158,196,.3)}
 .cond-status-atrasado{background:rgba(201,78,109,.12);color:var(--danger);border:1px solid rgba(201,78,109,.3);font-weight:700}
@@ -373,6 +387,9 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
     </div>
     <div class="nav-link" onclick="navTo('fiado')" data-p="fiado">
       <span class="nav-icon">📒</span><span class="nav-label">Fiado</span>
+    </div>
+    <div class="nav-link" onclick="navTo('encomendas')" data-p="encomendas">
+      <span class="nav-icon">📦</span><span class="nav-label">Encomendas</span>
     </div>
     <div class="nav-sec">Relatórios</div>
     <div class="nav-link" onclick="navTo('historico')" data-p="historico">
@@ -636,6 +653,54 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       </div>
     </div>
   </div>
+
+  <!-- ENCOMENDAS -->
+  <section class="section" id="sec-encomendas">
+    <div class="pg-header">
+      <div><div class="pg-title">Encomendas</div><div class="pg-sub">Pedidos de clientes — peças que não estão em estoque</div></div>
+    </div>
+    <!-- form -->
+    <div class="fc" id="enc-form-card">
+      <div class="fc-title" id="enc-form-ttl"><span>📦</span> Nova Encomenda</div>
+      <div id="enc-alert"></div>
+      <div class="fg fg4">
+        <div class="fgrp s2"><label>Nome do Cliente</label><input type="text" id="enc-cli" placeholder="Nome do cliente"></div>
+        <div class="fgrp"><label>Data do Pedido</label><input type="date" id="enc-data"></div>
+        <div class="fgrp"><label>Prazo Esperado</label><input type="date" id="enc-prazo"></div>
+        <div class="fgrp s2"><label>Descrição do Item</label><input type="text" id="enc-desc" placeholder="Ex: Vestido floral manga longa"></div>
+        <div class="fgrp"><label>Cor Desejada</label><input type="text" id="enc-cor" placeholder="Ex: Azul royal"></div>
+        <div class="fgrp"><label>Tamanho</label>
+          <select id="enc-tam">
+            <option value="">—</option>
+            <option>PP</option><option>P</option><option>M</option>
+            <option>G</option><option>GG</option><option>XGG</option><option>Único</option><option>Outro</option>
+          </select>
+        </div>
+        <div class="fgrp"><label>Quantidade</label><input type="number" id="enc-qtd" min="1" value="1"></div>
+        <div class="fgrp"><label>Valor Combinado (R$)</label><input type="number" id="enc-val" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgrp"><label>Entrada/Sinal (R$)</label><input type="number" id="enc-entrada" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fgrp sf"><label>Observações</label><textarea id="enc-obs" placeholder="Referências, fotos, detalhes..."></textarea></div>
+      </div>
+      <div class="fa">
+        <button class="btn btn-p" onclick="salvarEncomenda()">💾 Salvar Encomenda</button>
+        <button class="btn btn-g" onclick="cancelarEncEdit()" id="btn-cancel-enc" style="display:none">✕ Cancelar</button>
+        <button class="btn btn-g" onclick="limparEncomenda()">🔄 Limpar</button>
+      </div>
+    </div>
+    <!-- filters -->
+    <div class="fb" style="margin-bottom:8px;gap:6px">
+      <button class="btn btn-g btn-sm" onclick="setFiltEnc('')"           id="fe-todos">Todos</button>
+      <button class="btn btn-g btn-sm" onclick="setFiltEnc('aguardando')" id="fe-aguardando">⏳ Aguardando</button>
+      <button class="btn btn-d btn-sm" onclick="setFiltEnc('atrasada')"   id="fe-atrasada">⚠️ Atrasadas</button>
+      <button class="btn btn-g btn-sm" onclick="setFiltEnc('chegou')"     id="fe-chegou">📥 Chegou</button>
+      <button class="btn btn-s btn-sm" onclick="setFiltEnc('entregue')"   id="fe-entregue">✅ Entregues</button>
+      <button class="btn btn-g btn-sm" onclick="setFiltEnc('cancelada')"  id="fe-cancelada">❌ Canceladas</button>
+    </div>
+    <div class="tc">
+      <div class="tt"><div class="tt-title">Lista de Encomendas</div><span class="bdg bv" id="enc-cnt"></span></div>
+      <div id="enc-lista"></div>
+    </div>
+  </section>
 
   <!-- CONDICIONAIS -->
   <section class="section" id="sec-condicionais">
@@ -1066,10 +1131,10 @@ function atualizarSbConta() {
 function dados() {
   try {
     const r = localStorage.getItem(getChave());
-    if (!r) return { produtos:[], vendas:[], gastos:[], condicionais:[] };
+    if (!r) return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[] };
     const d = JSON.parse(r);
-    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[], condicionais:d.condicionais||[] };
-  } catch { return { produtos:[], vendas:[], gastos:[], condicionais:[] }; }
+    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[], condicionais:d.condicionais||[], encomendas:d.encomendas||[] };
+  } catch { return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[] }; }
 }
 
 function salvar(d) { localStorage.setItem(getChave(), JSON.stringify(d)); }
@@ -1089,6 +1154,7 @@ function navTo(page) {
     venda: initVenda,
     gastos: renderGastos,
     fiado: renderFiado,
+    encomendas: initEncomendas,
     condicionais: initCondicionais,
     historico: renderHist,
     relatorios: renderRel,
@@ -1227,6 +1293,10 @@ function renderDash() {
     if (condAts.length) alerts+=`<div class="alert al-d" style="cursor:pointer;margin-bottom:6px" onclick="navTo('condicionais')">⚠️ <strong>${condAts.length} condicional(is) atrasada(s)!</strong> Clique para verificar.</div>`;
     else if (condAbertos.length) alerts+=`<div class="alert al-i" style="cursor:pointer;margin-bottom:6px" onclick="navTo('condicionais')">🔄 <strong>${condAbertos.length} condicional(is) em aberto.</strong> Clique para ver.</div>`;
     if (fiadoPend.length) alerts+=`<div class="alert al-i" style="cursor:pointer;margin-bottom:6px" onclick="navTo('fiado')">📒 <strong>${fiadoPend.length} fiado(s) pendente(s)</strong> · ${brl(fiadoSaldo)} a receber. Clique para registrar entradas.</div>`;
+    const encAtras=(d.encomendas||[]).filter(e=>e.status==='aguardando'&&e.prazo&&e.prazo<hoje());
+    const encChegou=(d.encomendas||[]).filter(e=>e.status==='chegou');
+    if (encAtras.length) alerts+=`<div class="alert al-d" style="cursor:pointer;margin-bottom:6px" onclick="navTo('encomendas')">⚠️ <strong>${encAtras.length} encomenda(s) atrasada(s)!</strong> Clique para verificar.</div>`;
+    if (encChegou.length) alerts+=`<div class="alert al-i" style="cursor:pointer;margin-bottom:6px" onclick="navTo('encomendas')">📥 <strong>${encChegou.length} encomenda(s) chegou na loja</strong> aguardando entrega ao cliente.</div>`;
     condAlertEl.innerHTML=alerts;
   }
 
@@ -1870,6 +1940,203 @@ function excluirPagFiado(vendaId,idx) {
   abrirMo('🗑️','Remover Entrada','Deseja remover este pagamento? O saldo será restaurado.','Remover','btn-d',()=>{
     const dd=dados(), v=dd.vendas.find(x=>x.id===vendaId);
     if (v&&v.pagamentos) { v.pagamentos.splice(idx,1); salvar(dd); toast('Entrada removida','warning'); renderFiado(); }
+  });
+}
+
+/* ============================================================
+   ENCOMENDAS
+   ============================================================ */
+let _filtEnc = '';
+let _editEncId = null;
+
+function initEncomendas() {
+  if (!_editEncId) {
+    document.getElementById('enc-data').value = hoje();
+    const p = new Date(); p.setDate(p.getDate()+14);
+    document.getElementById('enc-prazo').value = p.toISOString().slice(0,10);
+  }
+  renderEncomendas();
+}
+
+function setFiltEnc(f) {
+  _filtEnc = f;
+  ['todos','aguardando','atrasada','chegou','entregue','cancelada'].forEach(k=>{
+    const el=document.getElementById(`fe-${k}`);
+    if (el) el.classList.toggle('btn-p', k===f||(k==='todos'&&f===''));
+    if (el) el.classList.toggle('btn-g', !(k===f||(k==='todos'&&f==='')));
+  });
+  renderEncomendas();
+}
+
+function statusEnc(e) {
+  if (e.status==='entregue')  return {cls:'enc-status-entregue',  label:'✅ Entregue'};
+  if (e.status==='cancelada') return {cls:'enc-status-cancelada', label:'❌ Cancelada'};
+  if (e.status==='chegou')    return {cls:'enc-status-chegou',    label:'📥 Chegou na loja'};
+  // aguardando — check if overdue
+  if (e.prazo && e.prazo < hoje()) return {cls:'enc-status-atrasada', label:`⚠️ Atrasada`};
+  return {cls:'enc-status-aguardando', label:'⏳ Aguardando'};
+}
+
+function renderEncomendas() {
+  const d=dados();
+  const lista0=(d.encomendas||[]);
+
+  // compute real status for filter
+  function realStatus(e) {
+    if (e.status==='entregue'||e.status==='cancelada'||e.status==='chegou') return e.status;
+    return (e.prazo&&e.prazo<hoje()) ? 'atrasada' : 'aguardando';
+  }
+
+  let lista=[...lista0].sort((a,b)=>b.data>a.data?1:-1);
+  if (_filtEnc==='atrasada') lista=lista.filter(e=>realStatus(e)==='atrasada');
+  else if (_filtEnc) lista=lista.filter(e=>e.status===_filtEnc||(e.status==='aguardando'&&_filtEnc==='aguardando'&&realStatus(e)==='aguardando'));
+
+  // summary
+  const tot=lista0.length;
+  const aguard=lista0.filter(e=>e.status==='aguardando'||e.status==='chegou').length;
+  const atras=lista0.filter(e=>realStatus(e)==='atrasada').length;
+  const entregues=lista0.filter(e=>e.status==='entregue').length;
+
+  document.getElementById('enc-cnt').textContent=lista.length;
+
+  // alert badges on filters
+  const atrasadaBtn=document.getElementById('fe-atrasada');
+  if (atrasadaBtn) atrasadaBtn.textContent=atras>0?`⚠️ Atrasadas (${atras})`:'⚠️ Atrasadas';
+
+  if (!lista.length) {
+    document.getElementById('enc-lista').innerHTML=`<div class="es"><div class="es-ic">📦</div><div class="es-t">Nenhuma encomenda${_filtEnc?' neste filtro':''}</div><div class="es-s">Registre uma nova encomenda acima</div></div>`;
+    return;
+  }
+
+  document.getElementById('enc-lista').innerHTML=lista.map(e=>{
+    const st=statusEnc(e);
+    const isFinal=e.status==='entregue'||e.status==='cancelada';
+    const val=parseFloat(e.val)||0;
+    const entrada=parseFloat(e.entrada)||0;
+    const restante=Math.max(0,val-entrada);
+    const diasPrazo=e.prazo?Math.round((new Date(e.prazo)-new Date(hoje()))/(86400000)):null;
+
+    return `<div class="enc-card ${e.status}">
+      <div class="enc-top">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="enc-cli">${e.cli}</div>
+            <span class="bdg ${st.cls}">${st.label}</span>
+            ${diasPrazo!==null&&!isFinal?`<span style="font-size:11px;color:${diasPrazo<0?'var(--danger)':diasPrazo<=3?'var(--warning)':'var(--muted)'}">${diasPrazo<0?`${Math.abs(diasPrazo)}d de atraso`:diasPrazo===0?'vence hoje':`${diasPrazo}d p/ prazo`}</span>`:''}
+          </div>
+          <div class="enc-meta">📅 Pedido: ${fdt(e.data)}${e.prazo?` · 📬 Prazo: ${fdt(e.prazo)}`:''}${e.qtd>1?` · Qtd: ${e.qtd}`:''}</div>
+        </div>
+        ${val>0?`<div style="text-align:right;flex-shrink:0">
+          <div style="font-size:18px;font-weight:800;color:var(--text)">${brl(val)}</div>
+          ${entrada>0?`<div style="font-size:11px;color:var(--muted)">Sinal: ${brl(entrada)} · Restante: ${brl(restante)}</div>`:''}
+        </div>`:''}
+      </div>
+      <div class="enc-desc">
+        <strong>${e.desc}</strong>
+        ${e.cor?` · 🎨 ${e.cor}`:''}
+        ${e.tam&&e.tam!=='—'?` · Tam: <span class="bdg bgr">${e.tam}</span>`:''}
+      </div>
+      ${e.obs?`<div style="font-size:12px;color:var(--muted);margin-top:4px">📝 ${e.obs}</div>`:''}
+      <div class="enc-actions">
+        ${e.status==='aguardando'?`<button class="btn btn-g btn-sm" onclick="mudarStatusEnc('${e.id}','chegou')">📥 Marcou como Chegou</button>`:''}
+        ${e.status==='chegou'?`<button class="btn btn-s btn-sm" onclick="mudarStatusEnc('${e.id}','entregue')">✅ Marcar como Entregue</button>`:''}
+        ${!isFinal?`<button class="btn btn-g btn-sm btn-ico" onclick="editarEncomenda('${e.id}')" title="Editar">✏️</button>`:''}
+        ${!isFinal?`<button class="btn btn-d btn-sm" onclick="mudarStatusEnc('${e.id}','cancelada')">❌ Cancelar</button>`:''}
+        ${isFinal?`<button class="btn btn-d btn-sm btn-ico" onclick="excluirEncomenda('${e.id}')" title="Excluir">🗑️</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function salvarEncomenda() {
+  const cli=document.getElementById('enc-cli').value.trim();
+  const desc=document.getElementById('enc-desc').value.trim();
+  const data=document.getElementById('enc-data').value;
+  const prazo=document.getElementById('enc-prazo').value;
+  const cor=document.getElementById('enc-cor').value.trim();
+  const tam=document.getElementById('enc-tam').value;
+  const qtd=parseInt(document.getElementById('enc-qtd').value)||1;
+  const val=parseFloat(document.getElementById('enc-val').value)||0;
+  const entrada=parseFloat(document.getElementById('enc-entrada').value)||0;
+  const obs=document.getElementById('enc-obs').value.trim();
+  const alEl=document.getElementById('enc-alert'); alEl.innerHTML='';
+
+  if (!cli||!desc||!data) {
+    alEl.innerHTML='<div class="alert al-d">⚠️ Preencha: cliente, descrição e data.</div>'; return;
+  }
+  if (entrada>val&&val>0) {
+    alEl.innerHTML='<div class="alert al-d">⚠️ Entrada não pode ser maior que o valor combinado.</div>'; return;
+  }
+
+  const dd=dados();
+  if (!dd.encomendas) dd.encomendas=[];
+  if (_editEncId) {
+    const i=dd.encomendas.findIndex(e=>e.id===_editEncId);
+    if (i!==-1) dd.encomendas[i]={...dd.encomendas[i],cli,desc,data,prazo,cor,tam,qtd,val,entrada,obs};
+    toast('Encomenda atualizada!');
+    _editEncId=null;
+    document.getElementById('enc-form-ttl').innerHTML='<span>📦</span> Nova Encomenda';
+    document.getElementById('btn-cancel-enc').style.display='none';
+  } else {
+    dd.encomendas.push({id:uid(),cli,desc,data,prazo,cor,tam,qtd,val,entrada,obs,status:'aguardando'});
+    toast('📦 Encomenda registrada!');
+  }
+  salvar(dd); limparEncomenda(); renderEncomendas();
+}
+
+function limparEncomenda() {
+  ['enc-cli','enc-desc','enc-cor','enc-val','enc-entrada','enc-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('enc-tam').value='';
+  document.getElementById('enc-qtd').value='1';
+  document.getElementById('enc-data').value=hoje();
+  const p=new Date(); p.setDate(p.getDate()+14);
+  document.getElementById('enc-prazo').value=p.toISOString().slice(0,10);
+  document.getElementById('enc-alert').innerHTML='';
+}
+
+function cancelarEncEdit() {
+  _editEncId=null;
+  document.getElementById('enc-form-ttl').innerHTML='<span>📦</span> Nova Encomenda';
+  document.getElementById('btn-cancel-enc').style.display='none';
+  limparEncomenda();
+}
+
+function editarEncomenda(id) {
+  const d=dados(), e=(d.encomendas||[]).find(x=>x.id===id); if(!e) return;
+  _editEncId=id;
+  document.getElementById('enc-cli').value=e.cli||'';
+  document.getElementById('enc-desc').value=e.desc||'';
+  document.getElementById('enc-data').value=e.data||hoje();
+  document.getElementById('enc-prazo').value=e.prazo||'';
+  document.getElementById('enc-cor').value=e.cor||'';
+  document.getElementById('enc-tam').value=e.tam||'';
+  document.getElementById('enc-qtd').value=e.qtd||1;
+  document.getElementById('enc-val').value=e.val||'';
+  document.getElementById('enc-entrada').value=e.entrada||'';
+  document.getElementById('enc-obs').value=e.obs||'';
+  document.getElementById('enc-form-ttl').innerHTML='<span>✏️</span> Editar Encomenda';
+  document.getElementById('btn-cancel-enc').style.display='inline-flex';
+  document.getElementById('enc-form-card').scrollIntoView({behavior:'smooth'});
+  document.getElementById('enc-cli').focus();
+}
+
+function mudarStatusEnc(id, novoStatus) {
+  const msgs={
+    chegou:  'Marcar que a encomenda chegou na loja?',
+    entregue:'Confirmar entrega ao cliente?',
+    cancelada:'Cancelar esta encomenda?'
+  };
+  abrirMo('📦','Atualizar Status',msgs[novoStatus]||'Confirmar?','Confirmar','btn-p',()=>{
+    const dd=dados(), e=(dd.encomendas||[]).find(x=>x.id===id);
+    if (e) { e.status=novoStatus; salvar(dd); toast('Status atualizado!'); renderEncomendas(); }
+  });
+}
+
+function excluirEncomenda(id) {
+  abrirMo('🗑️','Excluir Encomenda','Deseja excluir esta encomenda permanentemente?','Excluir','btn-d',()=>{
+    const dd=dados();
+    dd.encomendas=(dd.encomendas||[]).filter(x=>x.id!==id);
+    salvar(dd); toast('Encomenda excluída','warning'); renderEncomendas();
   });
 }
 
