@@ -141,6 +141,17 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .al-w{background:var(--warning-d);color:var(--warning);border:1px solid rgba(251,191,36,.2)}
 
 /* CHART */
+.meta-card{background:var(--surface);border:1px solid var(--border-s);border-radius:var(--r2);padding:18px 22px;margin-bottom:22px}
+.meta-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.meta-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px}
+.meta-edit-btn{background:none;border:1px solid var(--border);color:var(--primary);cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:7px;transition:background .15s}
+.meta-edit-btn:hover{background:var(--primary-dim)}
+.meta-bar{height:14px;background:var(--surface-3);border-radius:8px;overflow:hidden;position:relative}
+.meta-bar-fill{height:100%;border-radius:8px;transition:width .6s ease;background:linear-gradient(90deg,var(--primary),var(--primary-b))}
+.meta-bar-fill.done{background:linear-gradient(90deg,var(--success),#7bc99a)}
+.meta-vals{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+.meta-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.meta-editor input{max-width:160px}
 .chart-wrap{background:var(--surface);border:1px solid var(--border-s);border-radius:var(--r2);padding:22px;margin-bottom:22px}
 .ch-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
 .ch-sub{font-size:11px;color:var(--muted);margin-bottom:22px}
@@ -424,6 +435,7 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
     </div>
     <div class="grid g4" id="dash-fin" style="margin-bottom:20px"></div>
     <div class="grid g4" id="dash-kpi" style="margin-bottom:20px"></div>
+    <div class="meta-card" id="dash-meta"></div>
     <div class="chart-wrap">
       <div class="ch-title">Faturamento Mensal</div>
       <div class="ch-sub">Últimos 6 meses</div>
@@ -1131,10 +1143,10 @@ function atualizarSbConta() {
 function dados() {
   try {
     const r = localStorage.getItem(getChave());
-    if (!r) return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[] };
+    if (!r) return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[], meta:0 };
     const d = JSON.parse(r);
-    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[], condicionais:d.condicionais||[], encomendas:d.encomendas||[] };
-  } catch { return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[] }; }
+    return { produtos:d.produtos||[], vendas:d.vendas||[], gastos:d.gastos||[], condicionais:d.condicionais||[], encomendas:d.encomendas||[], meta:d.meta||0 };
+  } catch { return { produtos:[], vendas:[], gastos:[], condicionais:[], encomendas:[], meta:0 }; }
 }
 
 function salvar(d) { localStorage.setItem(getChave(), JSON.stringify(d)); }
@@ -1280,6 +1292,7 @@ function renderDash() {
     <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">Saldo do Mês</div><div class="m-val ${totMes-totGMes>=0?'g':'r'}">${brl(totMes-totGMes)}</div><div class="m-sub">Recebido − Gastos</div></div>
   `;
 
+  renderMeta(d, totMes);
   renderGrafico(d);
 
   // condicionais alert
@@ -1313,6 +1326,67 @@ function renderDash() {
           <td class="t-g">${brl(vTotal(v))}</td>
         </tr>`).join('')}
       </tbody></table>`;
+}
+
+let _editandoMeta = false;
+
+function renderMeta(d, totMes) {
+  const el = document.getElementById('dash-meta');
+  if (!el) return;
+  const meta = parseFloat(d.meta) || 0;
+
+  if (_editandoMeta) {
+    el.innerHTML = `
+      <div class="meta-head">
+        <div class="meta-title">🎯 Meta de Vendas do Mês</div>
+      </div>
+      <div class="meta-editor">
+        <span style="font-size:13px;color:var(--muted)">Definir meta mensal (R$):</span>
+        <input type="number" id="meta-input" min="0" step="0.01" value="${meta||''}" placeholder="Ex: 5000" onkeydown="if(event.key==='Enter')salvarMeta()">
+        <button class="btn btn-p btn-sm" onclick="salvarMeta()">💾 Salvar</button>
+        <button class="btn btn-g btn-sm" onclick="cancelarMetaEdit()">Cancelar</button>
+      </div>`;
+    setTimeout(()=>{ const i=document.getElementById('meta-input'); if(i){i.focus();i.select();} },30);
+    return;
+  }
+
+  if (meta <= 0) {
+    el.innerHTML = `
+      <div class="meta-head">
+        <div class="meta-title">🎯 Meta de Vendas do Mês</div>
+        <button class="meta-edit-btn" onclick="editarMeta()">Definir meta</button>
+      </div>
+      <div style="font-size:13px;color:var(--muted)">Nenhuma meta definida. Clique em "Definir meta" para acompanhar seu progresso mensal.</div>`;
+    return;
+  }
+
+  const pct = Math.min((totMes/meta)*100, 100);
+  const atingiu = totMes >= meta;
+  const falta = Math.max(0, meta - totMes);
+
+  el.innerHTML = `
+    <div class="meta-head">
+      <div class="meta-title">🎯 Meta de Vendas do Mês</div>
+      <button class="meta-edit-btn" onclick="editarMeta()">✏️ Alterar</button>
+    </div>
+    <div class="meta-bar"><div class="meta-bar-fill ${atingiu?'done':''}" style="width:${pct.toFixed(1)}%"></div></div>
+    <div class="meta-vals">
+      <span>Recebido: <strong class="t-g">${brl(totMes)}</strong></span>
+      <span><strong>${pct.toFixed(1)}%</strong> ${atingiu?'🎉 Meta atingida!':`· faltam <strong class="t-r">${brl(falta)}</strong>`}</span>
+      <span>Meta: <strong>${brl(meta)}</strong></span>
+    </div>`;
+}
+
+function editarMeta() { _editandoMeta = true; renderDash(); }
+function cancelarMetaEdit() { _editandoMeta = false; renderDash(); }
+function salvarMeta() {
+  const v = parseFloat(document.getElementById('meta-input').value) || 0;
+  const dd = dados();
+  dd.meta = v > 0 ? v : 0;
+  salvar(dd);
+  _editandoMeta = false;
+  toast(v>0 ? `🎯 Meta de ${brl(v)} definida!` : 'Meta removida.');
+  renderDash();
 }
 
 function renderGrafico(d) {
@@ -1515,16 +1589,8 @@ function gerarParcelas(v, prods) {
     }));
   }
 
-  // Cartão de Crédito: parcelas fixas
-  const parc = parseInt(v.parcelas)||1;
-  if (v.pag==='Cartão de Crédito' && parc>1 && v.data) {
-    const [yr,mo] = v.data.slice(0,7).split('-').map(Number);
-    return Array.from({length:parc}, (_,i)=>{
-      const tm=mo-1+i, y=yr+Math.floor(tm/12), m=tm%12+1;
-      return {mes:`${y}-${String(m).padStart(2,'0')}`, val:tot/parc, cst:cstTot/parc, pag:v.pag};
-    });
-  }
-
+  // Cartão de Crédito, Débito, PIX, Dinheiro: valor recebido à vista no mês da venda
+  // (mesmo parcelado no cartão, a loja recebe o valor cheio de uma vez)
   return [{mes:v.data?v.data.slice(0,7):'', val:tot, cst:cstTot, pag:v.pag}];
 }
 
@@ -2591,8 +2657,18 @@ function renderRel() {
     });
   });
 
-  const lucro=rec-cst;
-  const margem=rec>0?(lucro/rec*100):0;
+  // Gastos/despesas do período (baseado na data do gasto)
+  let gastosPer=d.gastos||[];
+  if (ini) gastosPer=gastosPer.filter(g=>g.data>=ini);
+  if (fim) gastosPer=gastosPer.filter(g=>g.data<=fim);
+  const totGastos=gastosPer.reduce((s,g)=>s+(parseFloat(g.val)||0),0);
+  const porCatGasto={};
+  gastosPer.forEach(g=>{ porCatGasto[g.cat]=(porCatGasto[g.cat]||0)+(parseFloat(g.val)||0); });
+
+  const lucroBruto=rec-cst;
+  const lucroLiq=rec-cst-totGastos;    // lucro líquido = receita - custo produtos - despesas
+  const margem=rec>0?(lucroLiq/rec*100):0;
+  const maxCat=Math.max(...Object.values(porCatGasto),1);
 
   // Produtos mais vendidos: baseado na DATA DA VENDA (quando o produto saiu)
   let vsData=todas;
@@ -2611,17 +2687,17 @@ function renderRel() {
 
   document.getElementById('rel-content').innerHTML=`
     <div style="font-size:11px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--surface-2);border-radius:7px;border:1px solid var(--border-s)">
-      💡 <strong>Receita por competência:</strong> inclui parcelas de Fiado/Cartão que vencem no período, mesmo que a venda tenha sido feita em outro mês.
+      💡 <strong>Receita por competência:</strong> inclui parcelas de Fiado/Cartão que vencem no período. <strong>Lucro Líquido</strong> = Receita − Custo dos produtos − Gastos.
     </div>
-    <div class="grid g4" style="margin-bottom:22px">
+    <div class="grid g4" style="margin-bottom:14px">
       <div class="metric"><span class="m-icon">💵</span><div class="m-lbl">Receita no Período</div><div class="m-val g">${brl(rec)}</div><div class="m-sub">${vendasNoPeriodo.size} venda(s) contribuindo</div></div>
-      <div class="metric"><span class="m-icon">📦</span><div class="m-lbl">Custo Proporcional</div><div class="m-val r">${brl(cst)}</div></div>
-      <div class="metric"><span class="m-icon">📈</span><div class="m-lbl">Lucro Líquido</div><div class="m-val ${lucro>=0?'g':'r'}">${brl(lucro)}</div></div>
-      <div class="metric"><span class="m-icon">📊</span><div class="m-lbl">Margem</div><div class="m-val v">${margem.toFixed(1)}%</div></div>
+      <div class="metric"><span class="m-icon">📦</span><div class="m-lbl">Custo dos Produtos</div><div class="m-val r">${brl(cst)}</div><div class="m-sub">Lucro bruto: ${brl(lucroBruto)}</div></div>
+      <div class="metric"><span class="m-icon">💸</span><div class="m-lbl">Gastos do Período</div><div class="m-val r">${brl(totGastos)}</div><div class="m-sub">${gastosPer.length} lançamento(s)</div></div>
+      <div class="metric"><span class="m-icon">📈</span><div class="m-lbl">Lucro Líquido</div><div class="m-val ${lucroLiq>=0?'g':'r'}">${brl(lucroLiq)}</div><div class="m-sub">Margem: ${margem.toFixed(1)}%</div></div>
     </div>
     <div class="grid g2">
       <div class="fc" style="margin-bottom:0">
-        <div class="fc-title"><span>💳</span> Por Forma de Pagamento</div>
+        <div class="fc-title"><span>💳</span> Receita por Forma de Pagamento</div>
         ${!Object.keys(porPag).length
           ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sem dados no período</div>'
           : Object.entries(porPag).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
@@ -2635,17 +2711,31 @@ function renderRel() {
             </div>`).join('')}
       </div>
       <div class="fc" style="margin-bottom:0">
-        <div class="fc-title"><span>🏆</span> Produtos Mais Vendidos</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Vendas feitas no período</div>
-        ${!rank.length
-          ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sem dados no período</div>'
-          : rank.map(([nome,s],i)=>`
-            <div class="rank-item">
-              <div class="rank-n ${i===0?'gold':''}">#${i+1}</div>
-              <div class="rank-info"><div class="rank-name">${nome}</div><div class="rank-qty">${s.qtd} unidade(s)</div></div>
-              <div class="rank-val">${brl(s.tot)}</div>
+        <div class="fc-title"><span>💸</span> Gastos por Categoria</div>
+        ${!Object.keys(porCatGasto).length
+          ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Nenhum gasto no período</div>'
+          : Object.entries(porCatGasto).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+            <div style="margin-bottom:14px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span>${bdgGasto(k)}</span>
+                <span class="t-s">${brl(v)}</span>
+              </div>
+              <div class="prog-bar"><div class="prog-fill" style="width:${(v/maxCat*100).toFixed(0)}%;background:linear-gradient(90deg,var(--danger),#e07a94)"></div></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:3px">${totGastos>0?(v/totGastos*100).toFixed(1):0}% dos gastos</div>
             </div>`).join('')}
       </div>
+    </div>
+    <div class="fc" style="margin-top:14px;margin-bottom:0">
+      <div class="fc-title"><span>🏆</span> Produtos Mais Vendidos</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Vendas feitas no período</div>
+      ${!rank.length
+        ? '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sem dados no período</div>'
+        : rank.map(([nome,s],i)=>`
+          <div class="rank-item">
+            <div class="rank-n ${i===0?'gold':''}">#${i+1}</div>
+            <div class="rank-info"><div class="rank-name">${nome}</div><div class="rank-qty">${s.qtd} unidade(s)</div></div>
+            <div class="rank-val">${brl(s.tot)}</div>
+          </div>`).join('')}
     </div>`;
 }
 
