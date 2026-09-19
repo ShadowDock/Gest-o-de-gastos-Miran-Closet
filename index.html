@@ -206,6 +206,16 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
 .total-box{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .total-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .total-val{font-size:23px;font-weight:800;color:var(--primary-b);letter-spacing:-.5px}
+/* desconto: campo + toggle R$/% */
+.desc-wrap{display:flex;gap:5px}
+.desc-wrap input{min-width:0}
+.desc-tipo{border:1px solid var(--border);background:var(--surface);color:var(--primary);font-weight:800;border-radius:8px;padding:0 13px;cursor:pointer;font-size:13px;min-width:46px;transition:all .12s;font-family:var(--font)}
+.desc-tipo:hover{border-color:var(--primary)}
+.desc-tipo.pct{background:var(--primary);color:#fff;border-color:var(--primary)}
+.desc-geral{background:var(--surface-2);border:1px solid var(--border-s);border-radius:9px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.desc-geral label{margin:0}
+.total-linha{display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);padding:2px 0}
+.total-linha.desc{color:var(--danger)}
 /* tam adder (product form) */
 .tam-adder-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px}
 .tam-adder-row .fgrp{margin:0}
@@ -576,15 +586,22 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
           </div>
 
           <div class="sp-step" id="v-step-final" style="display:none">
-            <div class="sp-lbl"><span class="sp-n">4</span> Quantidade e valor</div>
-            <div class="cart-add-row" style="grid-template-columns:90px 130px auto">
+            <div class="sp-lbl"><span class="sp-n">4</span> Quantidade, valor e desconto</div>
+            <div class="cart-add-row" style="grid-template-columns:80px 120px 150px auto">
               <div class="fgrp">
                 <label>Qtd</label>
-                <input type="number" id="v-qtd" min="1" value="1" oninput="atualizarEstInfo()">
+                <input type="number" id="v-qtd" min="1" value="1" oninput="calcDescItemInfo()">
               </div>
               <div class="fgrp">
                 <label>Valor Unit. (R$)</label>
-                <input type="number" id="v-val" min="0" step="0.01" placeholder="0,00">
+                <input type="number" id="v-val" min="0" step="0.01" placeholder="0,00" oninput="calcDescItemInfo()">
+              </div>
+              <div class="fgrp">
+                <label>Desconto no item</label>
+                <div class="desc-wrap">
+                  <input type="number" id="v-desc" min="0" step="0.01" value="" placeholder="0" oninput="calcDescItemInfo()">
+                  <button type="button" class="desc-tipo" id="v-desc-tipo" onclick="toggleDescTipo('item')">R$</button>
+                </div>
               </div>
               <button class="btn btn-p cart-add-btn" onclick="adicionarCarrinho()">➕ Adicionar ao carrinho</button>
             </div>
@@ -631,12 +648,23 @@ tbody tr:hover td{background:rgba(212,96,127,.05)}
       </div>
 
       <div class="divider"></div>
-      <div class="total-box">
-        <div>
-          <div class="total-lbl">Total da Venda</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px" id="v-total-sub"></div>
+      <div class="desc-geral">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">🏷️ Desconto geral na venda</label>
+        <div class="desc-wrap" style="max-width:200px">
+          <input type="number" id="v-desc-total" min="0" step="0.01" value="" placeholder="0" oninput="calcTotal()">
+          <button type="button" class="desc-tipo" id="v-desc-total-tipo" onclick="toggleDescTipo('total')">R$</button>
         </div>
-        <div class="total-val" id="v-total">R$ 0,00</div>
+        <span style="font-size:11px;color:var(--muted)">aplicado sobre o subtotal já com os descontos dos itens</span>
+      </div>
+      <div class="total-box">
+        <div style="flex:1">
+          <div id="v-total-breakdown"></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px" id="v-total-sub"></div>
+        </div>
+        <div style="text-align:right">
+          <div class="total-lbl">Total da Venda</div>
+          <div class="total-val" id="v-total">R$ 0,00</div>
+        </div>
       </div>
       <div class="fa">
         <button class="btn btn-s" onclick="registrarVenda()">✅ Confirmar Venda</button>
@@ -1682,10 +1710,31 @@ function renderEstoque() {
 /* ============================================================
    HELPERS DE VALOR (backward-compatible)
    ============================================================ */
-// Valor total da venda (soma de todos os itens)
-function vTotal(v) {
+// Valor BRUTO da venda (sem descontos) — soma dos itens pelo preço cheio
+function vBruto(v) {
   if (v.itens && v.itens.length) return v.itens.reduce((s,it)=>s+it.val*it.qtd,0);
   return (v.val||0)*(v.qtd||1);
+}
+
+// Valor TOTAL líquido: preço cheio − desconto por item − desconto geral da venda.
+// É o único ponto que conhece descontos — dashboard, relatórios, fiado e
+// histórico chamam esta função, então o desconto propaga sozinho.
+function vTotal(v) {
+  let liq;
+  if (v.itens && v.itens.length) liq = v.itens.reduce((s,it)=>s + (it.val*it.qtd - (it.desc||0)), 0);
+  else liq = (v.val||0)*(v.qtd||1);
+  return Math.max(0, liq - (v.descTotal||0));
+}
+
+// Desconto total concedido na venda (item + geral), para exibição
+function vDescontoTotal(v) { return Math.max(0, vBruto(v) - vTotal(v)); }
+
+// Converte um valor de desconto (R$ ou %) em reais, limitado à base
+function calcDesc(valor, tipo, base) {
+  valor = parseFloat(valor) || 0;
+  if (valor <= 0 || base <= 0) return 0;
+  const rs = tipo === 'pct' ? base * valor / 100 : valor;
+  return Math.max(0, Math.min(rs, base));
 }
 
 // Custo total da venda (requer array de produtos)
@@ -1811,7 +1860,38 @@ function vRecon(v) {
 /* ============================================================
    NOVA VENDA — CARRINHO
    ============================================================ */
-let carrinho = []; // [{prodId,nome,tam,cor,qtd,val}]
+let carrinho = []; // [{prodId,nome,tam,cor,qtd,val,desc,custo}]
+let vDescTipo = 'rs';       // modo do desconto por item: 'rs' | 'pct'
+let vDescTotalTipo = 'rs';  // modo do desconto geral
+
+// Alterna o campo entre R$ e % e recalcula
+function toggleDescTipo(qual) {
+  if (qual==='item') {
+    vDescTipo = vDescTipo==='rs' ? 'pct' : 'rs';
+    const b=document.getElementById('v-desc-tipo');
+    b.textContent = vDescTipo==='pct'?'%':'R$'; b.classList.toggle('pct', vDescTipo==='pct');
+    calcDescItemInfo();
+  } else {
+    vDescTotalTipo = vDescTotalTipo==='rs' ? 'pct' : 'rs';
+    const b=document.getElementById('v-desc-total-tipo');
+    b.textContent = vDescTotalTipo==='pct'?'%':'R$'; b.classList.toggle('pct', vDescTotalTipo==='pct');
+    calcTotal();
+  }
+}
+
+// Mostra o efeito do desconto do item + estoque na linha de info
+function calcDescItemInfo() {
+  atualizarEstInfo();
+  const el=document.getElementById('v-est-info');
+  if (!el||!vSel.prodId) return;
+  const qtd=parseInt(document.getElementById('v-qtd').value)||0;
+  const val=parseFloat(document.getElementById('v-val').value)||0;
+  const base=val*qtd;
+  const desc=calcDesc(document.getElementById('v-desc').value, vDescTipo, base);
+  if (desc>0 && base>0) {
+    el.innerHTML=`${el.textContent}${el.textContent?' · ':''}<span style="color:var(--danger)">−${brl(desc)}</span> → <strong>${brl(base-desc)}</strong>`;
+  }
+}
 
 /* Seleção em etapas: busca por nome/número → cor → tamanho.
    Cor e tamanho costumam estar em registros de produto separados (ex: a mesma
@@ -1982,6 +2062,7 @@ function mostrarFinalVenda() {
   document.getElementById('v-step-final').style.display='';
   document.getElementById('v-val').value=combo.preco;
   document.getElementById('v-qtd').value=1;
+  document.getElementById('v-desc').value='';   // desconto começa zerado a cada item
   atualizarEstInfo();
 }
 
@@ -2033,7 +2114,8 @@ function adicionarCarrinho() {
     return;
   }
 
-  carrinho.push({prodId,nome:p.nome,tam,cor,qtd,val,custo:parseFloat(p.custo)||0});
+  const desc=calcDesc(document.getElementById('v-desc').value, vDescTipo, val*qtd);
+  carrinho.push({prodId,nome:p.nome,tam,cor,qtd,val,desc,custo:parseFloat(p.custo)||0});
   toast(`${p.nome}${cor?' · '+cor:''} · ${tam} adicionado`,'info');
   trocarProdVenda();   // volta para a busca, pronta para o próximo item
   renderCarrinho();
@@ -2051,28 +2133,50 @@ function renderCarrinho() {
     calcTotal(); return;
   }
   el.innerHTML=`<table class="cart-table">
-    <thead><tr><th>Produto</th><th>Tam.</th><th>Cor</th><th>Qtd</th><th>Unit.</th><th>Subtotal</th><th></th></tr></thead>
+    <thead><tr><th>Produto</th><th>Tam.</th><th>Cor</th><th>Qtd</th><th>Unit.</th><th>Desc.</th><th>Subtotal</th><th></th></tr></thead>
     <tbody>${carrinho.map((it,i)=>`<tr>
       <td><strong>${it.nome}</strong></td>
       <td><span class="bdg bgr">${it.tam||'—'}</span></td>
       <td>${it.cor||'—'}</td>
       <td>${it.qtd}</td>
       <td class="t-m">${brl(it.val)}</td>
-      <td class="t-g">${brl(it.val*it.qtd)}</td>
+      <td class="${it.desc?'t-r':'t-m'}">${it.desc?('−'+brl(it.desc)):'—'}</td>
+      <td class="t-g">${brl(it.val*it.qtd-(it.desc||0))}</td>
       <td><button class="ct-rem" onclick="removerCarrinho(${i})" title="Remover">✕</button></td>
     </tr>`).join('')}</tbody>
   </table>`;
   calcTotal();
 }
 
+// Calcula subtotal, descontos e total do carrinho; devolve os valores usados
+function calcCarrinho() {
+  const bruto=carrinho.reduce((s,it)=>s+it.val*it.qtd,0);
+  const descItens=carrinho.reduce((s,it)=>s+(it.desc||0),0);
+  const aposItens=bruto-descItens;
+  const descGeral=calcDesc(document.getElementById('v-desc-total')?.value, vDescTotalTipo, aposItens);
+  const total=Math.max(0, aposItens-descGeral);
+  return {bruto, descItens, aposItens, descGeral, total};
+}
+
 function calcTotal() {
-  const tot=carrinho.reduce((s,it)=>s+it.val*it.qtd,0);
+  const c=calcCarrinho();
   const parc=parseInt(document.getElementById('v-parcelas')?.value)||1;
   const pag=document.getElementById('v-pag')?.value||'';
   const usaParcelas=(pag==='Fiado'||pag==='Cartão de Crédito')&&parc>1;
-  document.getElementById('v-total').textContent=brl(tot);
+
+  document.getElementById('v-total').textContent=brl(c.total);
+
+  // detalhamento só aparece quando há algum desconto
+  const bd=document.getElementById('v-total-breakdown');
+  if (bd) {
+    const temDesc=c.descItens>0||c.descGeral>0;
+    bd.innerHTML = temDesc ? `
+      <div class="total-linha"><span>Subtotal</span><span>${brl(c.bruto)}</span></div>
+      ${c.descItens>0?`<div class="total-linha desc"><span>Desconto nos itens</span><span>−${brl(c.descItens)}</span></div>`:''}
+      ${c.descGeral>0?`<div class="total-linha desc"><span>Desconto geral</span><span>−${brl(c.descGeral)}</span></div>`:''}` : '';
+  }
   const sub=document.getElementById('v-total-sub');
-  if (sub) sub.textContent=usaParcelas?`${parc}× de ${brl(tot/parc)} · reconhece ${brl(tot/parc)}/parcela`:``;
+  if (sub) sub.textContent=usaParcelas?`${parc}× de ${brl(c.total/parc)} · reconhece ${brl(c.total/parc)}/parcela`:``;
 }
 
 function registrarVenda() {
@@ -2112,6 +2216,9 @@ function registrarVenda() {
   const primeiro=carrinho[0];
   const nomeResumido=carrinho.length===1?primeiro.nome:`${primeiro.nome} +${carrinho.length-1}`;
 
+  // desconto geral em R$, calculado sobre o subtotal já com descontos de item
+  const c=calcCarrinho();
+
   d.vendas.push({
     id:uid(),
     cli:cli||'Não informado',
@@ -2120,10 +2227,11 @@ function registrarVenda() {
     data,
     cancelada:false,
     parcelas:pag==='Cartão de Crédito'?parcelas:1,
+    descTotal: c.descGeral||0,   // desconto geral da venda (R$)
     // Fiado: pagamentos livres registrados na aba Fiado
     pagamentos: pag==='Fiado' ? [] : undefined,
-    // multi-item
-    itens:carrinho.map(it=>({prodId:it.prodId,nomeProd:it.nome,tam:it.tam,cor:it.cor,qtd:it.qtd,val:it.val,custo:it.custo||0})),
+    // multi-item (cada item guarda seu desconto próprio)
+    itens:carrinho.map(it=>({prodId:it.prodId,nomeProd:it.nome,tam:it.tam,cor:it.cor,qtd:it.qtd,val:it.val,desc:it.desc||0,custo:it.custo||0})),
     // legacy compat fields (first item)
     prodId:primeiro.prodId,
     nomeProd:nomeResumido,
@@ -2142,12 +2250,17 @@ function registrarVenda() {
 
 function limparVenda() {
   carrinho=[];
-  ['v-cli','v-val','v-obs'].forEach(id=>document.getElementById(id).value='');
+  ['v-cli','v-val','v-obs','v-desc','v-desc-total'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('v-qtd').value='1';
   document.getElementById('v-pag').value='';
   document.getElementById('v-parcelas').value='1';
   document.getElementById('v-parcelas-wrap').style.display='none';
   document.getElementById('v-data').value=hoje();
+  // volta ambos os toggles para R$
+  vDescTipo='rs'; vDescTotalTipo='rs';
+  ['v-desc-tipo','v-desc-total-tipo'].forEach(id=>{
+    const b=document.getElementById(id); if(b){b.textContent='R$'; b.classList.remove('pct');}
+  });
   trocarProdVenda();
   renderCarrinho();
 }
@@ -2918,9 +3031,10 @@ function renderHist() {
 
   function histItens(v) {
     const cor = c => c ? ` <span class="bdg bgr">${c}</span>` : '';
+    const dsc = it => it.desc>0 ? ` <span style="font-size:11px;color:var(--danger)">−${brl(it.desc)}</span>` : '';
     if (v.itens&&v.itens.length) {
-      if (v.itens.length===1) return `${v.itens[0].nomeProd} <span class="bdg bgr">${v.itens[0].tam||'—'}</span>${cor(v.itens[0].cor)}`;
-      return v.itens.map(it=>`${it.nomeProd} <span class="bdg bgr">${it.tam||'—'}</span>${cor(it.cor)} ×${it.qtd}`).join('<br>');
+      if (v.itens.length===1) return `${v.itens[0].nomeProd} <span class="bdg bgr">${v.itens[0].tam||'—'}</span>${cor(v.itens[0].cor)}${dsc(v.itens[0])}`;
+      return v.itens.map(it=>`${it.nomeProd} <span class="bdg bgr">${it.tam||'—'}</span>${cor(it.cor)} ×${it.qtd}${dsc(it)}`).join('<br>');
     }
     return `${v.nomeProd||'—'} <span class="bdg bgr">${v.tam||'—'}</span>${cor(v.cor)}`;
   }
@@ -2933,6 +3047,18 @@ function renderHist() {
     if ((v.pag==='Fiado'||v.pag==='Cartão de Crédito')&&parc>1) return `<br><span style="font-size:11px;color:var(--muted)">${parc}× de ${brl(vTotal(v)/parc)}</span>`;
     return '';
   }
+  function histDesc(v) {
+    const total=vDescontoTotal(v);
+    if (total<=0) return '';
+    const descItens=(v.itens&&v.itens.length) ? v.itens.reduce((s,it)=>s+(it.desc||0),0) : 0;
+    const descGeral=v.descTotal||0;
+    let linhas='';
+    // se há os dois tipos, mostra separado; senão, uma linha só
+    if (descItens>0 && descGeral>0) {
+      linhas=`<span style="font-size:10px;color:var(--muted)">itens −${brl(descItens)} · geral −${brl(descGeral)}</span>`;
+    }
+    return `<br><span style="font-size:11px;color:var(--danger)">−${brl(total)} desc. (de ${brl(vBruto(v))})</span>${linhas?'<br>'+linhas:''}`;
+  }
 
   document.getElementById('hist-table').innerHTML = !lista.length
     ? `<div class="es"><div class="es-ic">📋</div><div class="es-t">Nenhuma venda no período</div><div class="es-s">Ajuste os filtros ou registre uma venda</div></div>`
@@ -2942,7 +3068,7 @@ function renderHist() {
           <td class="t-s">${v.cli}</td>
           <td>${histItens(v)}</td>
           <td>${histQtd(v)}</td>
-          <td class="${v.cancelada?'t-m':'t-g'}">${brl(vTotal(v))}${histParc(v)}</td>
+          <td class="${v.cancelada?'t-m':'t-g'}">${brl(vTotal(v))}${histDesc(v)}${histParc(v)}</td>
           <td>${bdgPag(v.pag)}</td>
           <td style="font-size:12px;color:var(--muted);max-width:140px;white-space:normal">${v.obs||'—'}</td>
           <td>${v.cancelada?'<span class="bdg br">Cancelada</span>':'<span class="bdg bg">Ativa</span>'}</td>
@@ -3004,7 +3130,7 @@ function renderRel() {
   const porProd={};
   vsData.forEach(v=>{
     if (v.itens&&v.itens.length) {
-      v.itens.forEach(it=>{ if(!porProd[it.nomeProd]) porProd[it.nomeProd]={qtd:0,tot:0}; porProd[it.nomeProd].qtd+=it.qtd; porProd[it.nomeProd].tot+=it.val*it.qtd; });
+      v.itens.forEach(it=>{ if(!porProd[it.nomeProd]) porProd[it.nomeProd]={qtd:0,tot:0}; porProd[it.nomeProd].qtd+=it.qtd; porProd[it.nomeProd].tot+=it.val*it.qtd-(it.desc||0); });
     } else {
       if(!porProd[v.nomeProd]) porProd[v.nomeProd]={qtd:0,tot:0}; porProd[v.nomeProd].qtd+=v.qtd||1; porProd[v.nomeProd].tot+=vTotal(v);
     }
